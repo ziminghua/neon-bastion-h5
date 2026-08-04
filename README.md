@@ -1,18 +1,22 @@
-# Neon Bastion H5
+# 霓虹堡垒 H5 · 第一关
 
-《霓虹堡垒》第一关视觉基线版本。
+纯前端横屏 H5 塔防游戏源码。
 
 ## 运行
 
-仓库启用 GitHub Pages 后直接打开：
+```bash
+python3 -m http.server 8080
+```
 
-`https://ziminghua.github.io/neon-bastion-h5/`
+浏览器访问 `http://localhost:8080/`。
 
-当前入口会加载已经固化在 Git 历史中的批准版游戏资源，仓库当前目录不保留 ZIP、工作流或上传临时文件。
+## 项目结构
 
-## 基线
+- `index.html`：游戏页面
+- `styles.css`：视觉样式
+- `app.js`：脚本加载入口
+- `src/`：完整玩法源码
+- `assets/`：敌人、炮塔、特效、界面和世界素材
+- `tests/smoke_test.py`：静态冒烟测试
 
-- 版本：v0.1.0-level1-visual-baseline
-- 场景：霓虹下城区
-- 四种炮塔、五类敌人、10 波与 Boss
-- 支持建造、拖动、交换、合成、升级和出售
+当前分支不包含 ZIP 或 GitHub Actions 导入工作流。
