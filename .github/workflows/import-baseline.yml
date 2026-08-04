@@ -1,3 +1,4 @@
+# Trigger baseline import after installation permission refresh.
 name: Import Neon Bastion baseline
 
 on:
