@@ -1,1 +1,133 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>霓虹堡垒</title><style>html,body{margin:0;min-height:100%;background:#030611;color:#bff7ff;font-family:system-ui}#loading{height:100vh;display:grid;place-items:center;text-align:center;padding:24px;box-sizing:border-box}</style><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script></head><body><div id="loading">正在加载《霓虹堡垒》第一关…</div><script>(async()=>{const archive='https://raw.githubusercontent.com/ziminghua/neon-bastion-h5/974896bab112d6626e171fca4098cf34666828ba/neon-bastion-h5%281%29.zip';const response=await fetch(archive);if(!response.ok)throw new Error('资源包读取失败：'+response.status);const zip=await JSZip.loadAsync(await response.arrayBuffer());const file=zip.file('neon-bastion-h5/preview.html');if(!file)throw new Error('游戏入口不存在');const html=await file.async('string');document.open();document.write(html);document.close()})().catch(error=>{document.getElementById('loading').textContent='加载失败：'+error.message;console.error(error)})</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#050914" />
+  <title>霓虹堡垒：第一关</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="viewport">
+    <main id="game-shell" aria-label="霓虹堡垒塔防游戏">
+      <canvas id="game" width="1536" height="1024"></canvas>
+      <div class="scanlines"></div>
+      <div class="topbar">
+        <section class="resource-cluster">
+          <div class="resource hp"><span class="resource-icon">♥</span><strong id="hpText">20/20</strong><small>核心装甲</small></div>
+          <div class="resource credits"><span class="resource-icon">⬡</span><strong id="creditsText">350</strong><small>能源币</small></div>
+          <div class="resource power"><span class="resource-icon">ϟ</span><strong id="powerText">2/8</strong><small>已部署</small></div>
+        </section>
+        <section class="wave-hud">
+          <div class="wave-caption">NEON DISTRICT · LEVEL 01</div>
+          <div class="wave-main">WAVE <strong id="waveText">0</strong><span>/10</span></div>
+          <div class="wave-sub"><span class="skull">◆</span><span id="waveSubText">部署防线</span></div>
+        </section>
+        <section class="top-actions">
+          <button id="speedBtn" class="hud-btn"><span>×1</span><small>速度</small></button>
+          <button id="pauseBtn" class="hud-btn icon-btn">Ⅱ</button>
+          <button id="soundBtn" class="hud-btn icon-btn">♪</button>
+        </section>
+      </div>
+
+      <aside class="side-panel left-panel">
+        <header><span class="panel-kicker">MISSION</span><h2>任务目标</h2></header>
+        <p>抵御所有敌人，保护能量核心。</p>
+        <div class="objective"><i class="cyan"></i><span>获胜条件</span><b>完成第 10 波</b></div>
+        <div class="objective"><i class="magenta"></i><span>失败条件</span><b>核心装甲归零</b></div>
+        <div class="divider"></div>
+        <header class="compact"><span class="panel-kicker">RESONANCE</span><h2>本局元素共鸣</h2></header>
+        <div class="res-row frost"><span>❄</span><div><b>冰霜协议</b><small>冰塔减速效果 +20%</small></div><em id="frostCount">0/2</em></div>
+        <div class="res-row energy"><span>⬡</span><div><b>能量过载</b><small>等离子范围 +15%</small></div><em id="energyCount">0/2</em></div>
+        <div class="res-row arcane"><span>△</span><div><b>奥术扩散</b><small>连锁目标 +1</small></div><em id="arcaneCount">0/2</em></div>
+      </aside>
+
+      <aside class="side-panel right-panel" id="inspectorPanel">
+        <header><span class="panel-kicker">TACTICAL DATA</span><h2 id="inspectName">能量核心</h2></header>
+        <div class="inspect-visual"><img id="inspectImage" src="assets/world/core.webp" alt="核心" /></div>
+        <div class="stat-grid" id="inspectStats">
+          <div><span id="inspectALabel">装甲</span><b id="inspectA">20 / 20</b></div>
+          <div><span id="inspectBLabel">护盾恢复</span><b id="inspectB">每波 +1</b></div>
+          <div><span id="inspectCLabel">状态</span><b id="inspectC">稳定</b></div>
+          <div><span id="inspectDLabel">威胁</span><b id="inspectD">低</b></div>
+        </div>
+        <div class="inspector-actions hidden" id="towerActions">
+          <button id="upgradeBtn" class="action gold">升级 <span id="upgradeCost">120</span></button>
+          <button id="sellBtn" class="action red">出售 <span id="sellValue">60</span></button>
+        </div>
+        <p class="tip" id="inspectTip">部署炮塔并守住通往核心的霓虹运输线。</p>
+      </aside>
+
+      <section class="bottom-deck">
+        <div class="minimap-card">
+          <div class="mini-title">区域拓扑</div>
+          <canvas id="minimap" width="210" height="130"></canvas>
+          <div class="mini-legend"><span class="spawn-dot"></span>出怪口 <span class="core-dot"></span>核心</div>
+        </div>
+        <div class="tower-deck" id="towerDeck">
+          <button class="tower-card rail selected" data-type="rail">
+            <span class="card-type">轨道箭塔</span><span class="card-level">Lv.1</span>
+            <img src="assets/towers/rail.webp" alt="轨道箭塔" />
+            <div class="card-stats"><b>12</b><span>攻击</span><b>0.55s</b><span>攻速</span></div>
+            <div class="card-cost">⬡ 100</div>
+          </button>
+          <button class="tower-card cryo" data-type="cryo">
+            <span class="card-type">寒冰塔</span><span class="card-level">Lv.1</span>
+            <img src="assets/towers/cryo.webp" alt="寒冰塔" />
+            <div class="card-stats"><b>35%</b><span>减速</span><b>160</b><span>射程</span></div>
+            <div class="card-cost">⬡ 120</div>
+          </button>
+          <button class="tower-card plasma" data-type="plasma">
+            <span class="card-type">等离子炮塔</span><span class="card-level">Lv.1</span>
+            <img src="assets/towers/plasma.webp" alt="等离子炮塔" />
+            <div class="card-stats"><b>20</b><span>爆破</span><b>60</b><span>范围</span></div>
+            <div class="card-cost">⬡ 150</div>
+          </button>
+          <button class="tower-card arcane" data-type="arcane">
+            <span class="card-type">奥术塔</span><span class="card-level">Lv.1</span>
+            <img src="assets/towers/arcane.webp" alt="奥术塔" />
+            <div class="card-stats"><b>2</b><span>连锁</span><b>190</b><span>射程</span></div>
+            <div class="card-cost">⬡ 180</div>
+          </button>
+        </div>
+        <div class="command-card">
+          <div class="command-copy"><span>当前选择</span><strong id="selectedTowerName">轨道箭塔</strong><small id="selectedTowerDesc">高速单体输出</small></div>
+          <button id="startWaveBtn" class="start-wave"><span class="start-shine"></span><b>开始战斗</b><small id="startWaveSub">第 1 波</small></button>
+        </div>
+      </section>
+
+      <section id="protocolModal" class="protocol-panel hidden">
+        <div class="protocol-head"><span>COMBAT PROTOCOL</span><h2>选择战术强化</h2><small>本次选择将持续至本关结束</small></div>
+        <div id="protocolChoices" class="protocol-choices"></div>
+      </section>
+      <div id="toast" class="toast"></div>
+      <div id="bossBanner" class="boss-banner"><span>WARNING</span><strong>BOSS SIGNAL DETECTED</strong></div>
+      <div id="waveBanner" class="wave-banner"><small>INCOMING</small><strong id="waveBannerText">WAVE 1</strong></div>
+
+      <section id="intro" class="modal-backdrop">
+        <div class="intro-card">
+          <img class="intro-logo" src="assets/ui/logo.webp" alt="霓虹堡垒" />
+          <span class="eyebrow">CYBER DEFENSE PROTOCOL</span>
+          <h1>霓虹堡垒</h1>
+          <h3>第一关 · 霓虹下城区</h3>
+          <p>可将塔卡拖到发光塔位，也可先选择塔卡再点击塔位。点击炮塔查看射程；拖到空位可移动，拖到同类型同等级炮塔可合成升级。</p>
+          <div class="intro-features"><span>10 波攻势</span><span>4 类炮塔</span><span>元素共鸣</span><span>Boss 战</span></div>
+          <button id="enterBtn" class="enter-btn">进入战区</button>
+        </div>
+      </section>
+
+      <section id="resultModal" class="modal-backdrop hidden">
+        <div class="result-card">
+          <span class="eyebrow" id="resultEyebrow">MISSION COMPLETE</span>
+          <h1 id="resultTitle">核心守住了</h1>
+          <div class="result-score"><small>最终得分</small><strong id="resultScore">0</strong></div>
+          <div class="result-stats"><span>守住波次<b id="resultWave">10</b></span><span>剩余装甲<b id="resultHp">20</b></span><span>击毁单位<b id="resultKills">0</b></span></div>
+          <button id="restartBtn" class="enter-btn">再次挑战</button>
+        </div>
+      </section>
+      <div id="orientationHint" class="orientation-hint">请横屏游玩，以获得完整战场视野</div>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
