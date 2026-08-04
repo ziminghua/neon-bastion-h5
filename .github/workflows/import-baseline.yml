@@ -1,8 +1,9 @@
-# Trigger baseline import after installation permission refresh.
 name: Import Neon Bastion baseline
 
 on:
   workflow_dispatch:
+  issues:
+    types: [opened]
   push:
     paths:
       - '.github/workflows/import-baseline.yml'
@@ -13,6 +14,7 @@ permissions:
 
 jobs:
   import:
+    if: github.event_name != 'issues' || startsWith(github.event.issue.title, '[automation] import baseline')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
