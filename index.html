@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#050914">
+  <title>霓虹堡垒：第一关</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;display:grid;place-items:center;background:#02040b;color:#bceeff;font:14px system-ui,sans-serif}
+    .loading{text-align:center;letter-spacing:.12em}.bar{width:260px;height:4px;margin:16px auto;background:#10243a;overflow:hidden}.bar i{display:block;width:35%;height:100%;background:#59e7ff;box-shadow:0 0 14px #59e7ff;animation:load 1.1s infinite ease-in-out}@keyframes load{from{transform:translateX(-100%)}to{transform:translateX(390%)}}
+  </style>
+</head>
+<body>
+  <div class="loading">正在载入霓虹战区<div class="bar"><i></i></div><small id="status">准备资源…</small></div>
+  <script>
+  (async()=>{
+    const count=21, parts=[];
+    try{
+      for(let i=1;i<=count;i++){
+        const name=`payload/part-${String(i).padStart(3,'0')}.txt`;
+        document.getElementById('status').textContent=`载入资源 ${i}/${count}`;
+        const r=await fetch(name,{cache:'no-cache'});
+        if(!r.ok) throw new Error(`${name}: HTTP ${r.status}`);
+        parts.push(await r.text());
+      }
+      const html=parts.join('');
+      document.open(); document.write(html); document.close();
+    }catch(e){
+      document.body.innerHTML=`<pre style="padding:24px;white-space:pre-wrap;color:#ff8295">游戏加载失败\n${String(e)}</pre>`;
+    }
+  })();
+  </script>
+</body>
+</html>
