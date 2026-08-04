@@ -1,0 +1,77 @@
+name: Import Neon Bastion baseline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/import-baseline.yml'
+      - 'neon-bastion-h5(1).zip'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract and normalize project
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive='neon-bastion-h5(1).zip'
+          if [[ ! -f "$archive" ]]; then
+            echo "Archive already imported; nothing to do."
+            exit 0
+          fi
+
+          rm -rf .baseline-import
+          mkdir -p .baseline-import
+          unzip -q "$archive" -d .baseline-import
+          source_dir='.baseline-import/neon-bastion-h5'
+          test -f "$source_dir/index.html"
+          test -f "$source_dir/app.js"
+          test -f "$source_dir/styles.css"
+          test -d "$source_dir/assets"
+
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='dist/' \
+            --exclude='preview_single.html' \
+            "$source_dir/" ./
+
+          rm -rf .baseline-import
+          rm -f "$archive"
+
+      - name: Verify baseline files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s index.html
+          test -s app.js
+          test -s styles.css
+          test -s preview.html
+          test -s BASELINE.md
+          test -s assets/world/background.webp
+          test -s assets/world/core.webp
+          test -s assets/towers/rail.webp
+          test -s assets/enemies/boss.webp
+          python3 tests/smoke_test.py
+
+      - name: Commit imported baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat: import playable level 1 visual baseline'
+          git push
