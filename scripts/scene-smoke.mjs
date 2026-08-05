@@ -27,7 +27,7 @@ await page.screenshot({path:`${out}/rendered-map-deployed-1600x900.png`});
 await page.evaluate(()=>{
   const g=window.__NEON_TEST__;
   g.startWave();
-  g.state.spawnQueue=[];
+  g.state.spawnQueue=[{type:'drone',at:999,scale:1}];
 });
 await page.waitForTimeout(1850);
 await page.evaluate(()=>{
@@ -36,6 +36,7 @@ await page.evaluate(()=>{
     ['drone',.19],['runner',.24],['drone',.29],['brute',.39],
     ['shield',.47],['runner',.60],['brute',.68],['shield',.78]
   ];
+  g.state.spawnQueue=[];
   g.state.enemies=specs.map(([type,progress])=>{
     const enemy=g.createEnemy(type,1.3);
     enemy.progress=progress;
