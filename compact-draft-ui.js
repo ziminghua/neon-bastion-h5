@@ -36,9 +36,7 @@
       display: block !important;
     }
 
-    .three-zone-draft-dock .tower-card.draft-hidden {
-      display: none !important;
-    }
+    .three-zone-draft-dock .tower-card.draft-hidden { display: none !important; }
 
     .three-zone-draft-dock .tower-card.draft-current {
       width: 100% !important;
@@ -57,10 +55,7 @@
       transform: none !important;
     }
 
-    .three-zone-draft-dock .tower-card.draft-current:hover {
-      transform: none !important;
-      filter: brightness(1.06);
-    }
+    .three-zone-draft-dock .tower-card.draft-current:hover { transform: none !important; filter: brightness(1.06); }
 
     .three-zone-draft-dock .tower-card.draft-current::before {
       content: 'CURRENT TOWER' !important;
@@ -131,24 +126,28 @@
     }
 
     .three-zone-draft-dock .draft-zone-signal {
-      display: grid;
-      grid-template-rows: 1fr 34px;
-      gap: 6px;
-      padding: 9px 12px;
+      padding: 9px 10px;
       border-right: 1px solid rgba(106,213,241,.16);
       background: rgba(3,11,23,.48);
     }
 
     .three-zone-draft-dock .draft-next {
-      min-width: 0 !important;
-      height: auto !important;
-      padding: 0 !important;
-      border: 0 !important;
-      background: transparent !important;
-      clip-path: none !important;
+      position: relative !important;
+      width: 100% !important;
+      height: 96px !important;
+      display: grid !important;
+      grid-template-columns: minmax(0,1fr) 66px !important;
+      grid-template-rows: 17px minmax(0,1fr) !important;
+      column-gap: 8px !important;
+      padding: 9px 8px 8px 10px !important;
+      border: 1px solid rgba(101,207,235,.18) !important;
+      background: linear-gradient(155deg,rgba(7,24,43,.72),rgba(3,10,22,.72)) !important;
+      clip-path: polygon(0 0,95% 0,100% 12%,100% 100%,0 100%) !important;
     }
 
     .three-zone-draft-dock .draft-next > span {
+      grid-column: 1;
+      grid-row: 1;
       display: block !important;
       color: #668fa3 !important;
       font-size: 6px !important;
@@ -156,24 +155,25 @@
       letter-spacing: .2em !important;
     }
 
-    .three-zone-draft-dock .draft-next > div {
-      height: 61px !important;
+    .three-zone-draft-dock .draft-next > div:not(.draft-reroll) {
+      grid-column: 1;
+      grid-row: 2;
+      height: 66px !important;
       display: grid !important;
-      grid-template-columns: 64px minmax(0,1fr) !important;
+      grid-template-columns: 62px minmax(0,1fr) !important;
       align-items: center !important;
-      gap: 8px !important;
+      gap: 7px !important;
     }
 
     .three-zone-draft-dock .draft-next img {
-      width: 62px !important;
-      height: 62px !important;
+      width: 60px !important;
+      height: 60px !important;
       object-fit: contain !important;
-      opacity: .82 !important;
+      opacity: .84 !important;
       filter: drop-shadow(0 0 8px rgba(90,225,255,.2)) !important;
     }
 
     .three-zone-draft-dock .draft-next p {
-      display: block !important;
       min-width: 0 !important;
       margin: 0 !important;
       overflow: hidden !important;
@@ -189,53 +189,63 @@
       white-space: nowrap !important;
     }
 
-    .three-zone-draft-dock .draft-next small {
-      display: none !important;
-    }
+    .three-zone-draft-dock .draft-next small { display: none !important; }
 
-    .three-zone-draft-dock .draft-reroll {
+    .three-zone-draft-dock .draft-next .draft-reroll {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      width: 66px !important;
+      height: 78px !important;
       min-width: 0 !important;
-      width: 100% !important;
-      height: 34px !important;
-      padding: 0 !important;
+      align-self: center;
+      padding: 0 0 0 8px !important;
       border: 0 !important;
+      border-left: 1px solid rgba(103,205,232,.14) !important;
       background: transparent !important;
-      display: block !important;
     }
 
-    .three-zone-draft-dock .draft-reroll > span {
-      display: none !important;
-    }
+    .three-zone-draft-dock .draft-reroll > span { display: none !important; }
 
     .three-zone-draft-dock .draft-reroll button {
-      width: 100% !important;
-      height: 34px !important;
-      min-height: 34px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      gap: 9px !important;
-      padding: 0 10px !important;
-      border: 1px solid rgba(82,233,255,.28) !important;
-      background: linear-gradient(180deg,rgba(15,50,71,.72),rgba(4,18,31,.92)) !important;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.035) !important;
+      width: 58px !important;
+      height: 64px !important;
+      min-height: 64px !important;
+      display: grid !important;
+      place-content: center !important;
+      gap: 4px !important;
+      padding: 7px 4px !important;
+      color: #dffcff !important;
+      border: 1px solid rgba(82,233,255,.25) !important;
+      background: linear-gradient(180deg,rgba(16,55,76,.62),rgba(4,18,31,.86)) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.03) !important;
+      clip-path: polygon(12% 0,88% 0,100% 14%,100% 86%,88% 100%,12% 100%,0 86%,0 14%);
     }
 
     .three-zone-draft-dock .draft-reroll button:hover:not(:disabled) {
-      border-color: rgba(82,233,255,.52) !important;
-      filter: brightness(1.08);
+      border-color: rgba(82,233,255,.5) !important;
+      filter: brightness(1.1);
     }
 
     .three-zone-draft-dock .draft-reroll button b {
-      font-size: 9px !important;
-      letter-spacing: .1em !important;
+      font-size: 0 !important;
+      line-height: 1 !important;
+    }
+
+    .three-zone-draft-dock .draft-reroll button b::before {
+      content: '↻';
+      display: block;
+      color: #bff7ff;
+      font-size: 20px;
+      line-height: 1;
     }
 
     .three-zone-draft-dock .draft-reroll button small {
+      display: block !important;
       margin: 0 !important;
       color: #ffd364 !important;
-      font-size: 7px !important;
-      line-height: 1 !important;
+      font-size: 6px !important;
+      line-height: 1.15 !important;
+      text-align: center !important;
     }
 
     .three-zone-draft-dock .draft-zone-combat {
@@ -246,9 +256,7 @@
       background: linear-gradient(100deg,rgba(4,13,27,.32),rgba(8,25,43,.7));
     }
 
-    .three-zone-draft-dock .command-copy {
-      display: none !important;
-    }
+    .three-zone-draft-dock .command-copy { display: none !important; }
 
     .three-zone-draft-dock .emp-button {
       width: auto !important;
@@ -269,23 +277,12 @@
       font-size: 20px !important;
     }
 
-    .three-zone-draft-dock .emp-button span {
-      text-align: center !important;
-    }
-
+    .three-zone-draft-dock .emp-button span,
     .three-zone-draft-dock .emp-button b,
-    .three-zone-draft-dock .emp-button small {
-      text-align: center !important;
-    }
+    .three-zone-draft-dock .emp-button small { text-align: center !important; }
 
-    .three-zone-draft-dock .emp-button b {
-      font-size: 8px !important;
-    }
-
-    .three-zone-draft-dock .emp-button small {
-      margin-top: 2px !important;
-      font-size: 6px !important;
-    }
+    .three-zone-draft-dock .emp-button b { font-size: 8px !important; }
+    .three-zone-draft-dock .emp-button small { margin-top: 2px !important; font-size: 6px !important; }
 
     .three-zone-draft-dock .start-wave {
       width: auto !important;
@@ -293,13 +290,8 @@
       box-shadow: 0 10px 24px rgba(52,196,255,.16) !important;
     }
 
-    .three-zone-draft-dock .start-wave b {
-      font-size: 15px !important;
-    }
-
-    .three-zone-draft-dock .start-wave small {
-      margin-top: 5px !important;
-    }
+    .three-zone-draft-dock .start-wave b { font-size: 15px !important; }
+    .three-zone-draft-dock .start-wave small { margin-top: 5px !important; }
   `;
 
   function install() {
@@ -328,7 +320,8 @@
     combat.setAttribute('aria-label', 'Combat controls');
 
     primary.append(towerDeck);
-    signal.append(next, rerollPanel);
+    next.append(rerollPanel);
+    signal.append(next);
     combat.append(emp, start);
 
     const children = [primary, signal, combat];
