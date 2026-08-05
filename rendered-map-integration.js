@@ -41,7 +41,7 @@
     const context = canvas.getContext('2d', {alpha:false, willReadFrequently:true});
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = 'high';
-    context.filter = 'saturate(1.08) contrast(1.07) brightness(.99)';
+    context.filter = 'saturate(1.16) contrast(1.12) brightness(1.04)';
     context.drawImage(image, 0, 0, 1600, 900);
     context.filter = 'none';
 
@@ -57,7 +57,7 @@
           const down = i + width * 4;
           for (let c = 0; c < 3; c += 1) {
             const edge = source[i + c] * 5 - source[i - 4 + c] - source[i + 4 + c] - source[up + c] - source[down + c];
-            data[i + c] = Math.max(0, Math.min(255, source[i + c] + edge * .16));
+            data[i + c] = Math.max(0, Math.min(255, source[i + c] + edge * .22));
           }
         }
       }
@@ -93,11 +93,11 @@
     renderedMap.src = `data:image/webp;base64,${chunks.join('')}`;
 
     const canvas = document.getElementById('game');
-    if (canvas) canvas.style.filter = 'saturate(1.03) contrast(1.02)';
+    if (canvas) canvas.style.filter = 'saturate(1.02) contrast(1.02)';
 
     const style = document.createElement('style');
     style.textContent = `
-      .scanlines{opacity:.012!important}
+      .scanlines{opacity:.008!important}
       .mission-panel{transform:scale(.86);transform-origin:left top;opacity:.68}
       .inspector{transform:scale(.86);transform-origin:right top;opacity:.7}
       .brand-block{opacity:.86}
