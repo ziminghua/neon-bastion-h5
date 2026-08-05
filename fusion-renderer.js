@@ -7,6 +7,9 @@
 
   const originalDrawImage = proto.drawImage;
   const originalRoundRect = proto.roundRect;
+  const originalEllipse = proto.ellipse;
+  const originalArc = proto.arc;
+  const originalFillRect = proto.fillRect;
   const originalFill = proto.fill;
   const originalStroke = proto.stroke;
   const originalFillText = proto.fillText;
@@ -35,8 +38,8 @@
     ctx.globalAlpha = .66;
     ctx.fillStyle = 'rgba(0,0,0,.78)';
     ctx.beginPath();
-    ctx.ellipse(0, 24, profile.shadowX, profile.shadowY, 0, 0, Math.PI * 2);
-    ctx.fill();
+    originalEllipse.call(ctx, 0, 24, profile.shadowX, profile.shadowY, 0, 0, Math.PI * 2);
+    originalFill.call(ctx);
 
     ctx.globalCompositeOperation = 'screen';
     ctx.globalAlpha = .10;
@@ -46,15 +49,15 @@
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.ellipse(0, 20, 39, 18, 0, 0, Math.PI * 2);
-    ctx.fill();
+    originalEllipse.call(ctx, 0, 20, 39, 18, 0, 0, Math.PI * 2);
+    originalFill.call(ctx);
 
     ctx.globalAlpha = .22;
     ctx.strokeStyle = profile.glow;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.ellipse(0, 21, 30, 11, 0, 0, Math.PI * 2);
-    ctx.stroke();
+    originalEllipse.call(ctx, 0, 21, 30, 11, 0, 0, Math.PI * 2);
+    originalStroke.call(ctx);
     ctx.restore();
   }
 
@@ -76,9 +79,6 @@
       return originalDrawImage.call(this, image, dx, dy, nw, nh);
     }
 
-    // The authored map already contains the core crystal and its platform. Keeping the
-    // legacy sprite here creates a duplicated, floating crystal, so only the live rings
-    // and damage feedback from drawCore are retained.
     if (kind === 'core' && dw > 80 && dh > 80) return;
 
     if (kind === 'enemy' && dw > 25 && dw < 130) {
@@ -98,21 +98,66 @@
 
   proto.roundRect = function(x, y, w, h, radii) {
     if (this.canvas?.id === 'game' && x === 25 && y === 16 && w === 38 && h === 21) {
-      this.__neonHideLevelBadge = true;
+      this.__neonSkipShapeOps = 2;
       this.beginPath();
       this.rect(0, 0, 0, 0);
       return this;
     }
+    if (this.canvas?.id === 'game' && x === -34 && y === -38 && w === 54 && h === 76) {
+      this.__neonSkipShapeOps = 2;
+      this.beginPath();
+      this.rect(0, 0, 0, 0);
+      return this;
+    }
+    if (this.canvas?.id === 'game' && h === 6 && radii === 4) {
+      this.__neonHealthBar = true;
+      return originalRoundRect.call(this, x, y + 1, w, 4, 2);
+    }
     return originalRoundRect.call(this, x, y, w, h, radii);
   };
 
-  proto.fill = function(...args) {
-    if (this.__neonHideLevelBadge) {
-      this.__neonHideLevelBadge = false;
-      this.__neonSkipLevelStroke = true;
+  proto.ellipse = function(x, y, radiusX, radiusY, rotation, startAngle, endAngle, counterclockwise) {
+    if (this.canvas?.id === 'game' && ((radiusX === 69 && radiusY === 29) || (radiusX === 49 && radiusY === 16))) {
+      this.__neonSkipShapeOps = radiusX === 69 ? 2 : 1;
+      this.beginPath();
+      this.rect(0, 0, 0, 0);
       return;
     }
+    return originalEllipse.call(this, x, y, radiusX, radiusY, rotation, startAngle, endAngle, counterclockwise);
+  };
+
+  proto.arc = function(x, y, radius, startAngle, endAngle, counterclockwise) {
+    if (this.canvas?.id === 'game' && x === 0 && y === -4 && radius >= 55 && radius <= 61) {
+      this.__neonSkipShapeOps = 1;
+      this.beginPath();
+      this.rect(0, 0, 0, 0);
+      return;
+    }
+    return originalArc.call(this, x, y, radius, startAngle, endAngle, counterclockwise);
+  };
+
+  proto.fillRect = function(x, y, w, h) {
+    if (this.canvas?.id === 'game' && x === -24 && w === 31 && h === 3) return;
+    return originalFillRect.call(this, x, y, w, h);
+  };
+
+  proto.fill = function(...args) {
+    if (this.__neonSkipShapeOps > 0) {
+      this.__neonSkipShapeOps -= 1;
+      return;
+    }
+    if (this.__neonHealthBar) {
+      this.__neonHealthBar = false;
+      if (String(this.fillStyle).toLowerCase() === '#67f3a1') {
+        this.save();
+        this.fillStyle = '#ff586f';
+        const result = originalFill.apply(this, args);
+        this.restore();
+        return result;
+      }
+    }
     if (this.canvas?.id === 'game' && String(this.fillStyle) === 'rgba(7, 20, 29, 0.22)') {
+      if (document.body.classList.contains('combat-active')) return;
       this.save();
       this.globalAlpha *= .12;
       const result = originalFill.apply(this, args);
@@ -123,11 +168,12 @@
   };
 
   proto.stroke = function(...args) {
-    if (this.__neonSkipLevelStroke) {
-      this.__neonSkipLevelStroke = false;
+    if (this.__neonSkipShapeOps > 0) {
+      this.__neonSkipShapeOps -= 1;
       return;
     }
     if (this.canvas?.id === 'game' && String(this.strokeStyle).toLowerCase() === '#58dfff' && this.lineWidth <= 1.7) {
+      if (document.body.classList.contains('combat-active')) return;
       this.save();
       this.globalAlpha *= .16;
       const result = originalStroke.apply(this, args);
@@ -138,7 +184,7 @@
   };
 
   proto.fillText = function(text, ...args) {
-    if (this.canvas?.id === 'game' && /^L\d+$/.test(String(text))) return;
+    if (this.canvas?.id === 'game' && (/^L\d+$/.test(String(text)) || String(text) === 'BREACH')) return;
     return originalFillText.call(this, text, ...args);
   };
 
