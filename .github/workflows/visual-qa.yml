@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   visual-qa:
@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -23,6 +25,18 @@ jobs:
         run: |
           node scripts/apply-level-overhaul.mjs
           node scripts/apply-level-overhaul-adjustments.mjs
+
+      - name: Commit materialized level source
+        run: |
+          if git diff --quiet -- app.js; then
+            echo "app.js already materialized"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          git commit -m "feat: materialize tactical level overhaul"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Check active game entry
         run: npm run check
