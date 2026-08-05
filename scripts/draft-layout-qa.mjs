@@ -35,6 +35,8 @@ async function snapshot() {
       const box = element.getBoundingClientRect();
       return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 && box.width > 0 && box.height > 0;
     };
+    const next = document.querySelector('#draftNext');
+    const reroll = document.querySelector('#draftReroll');
     return {
       viewport: { width: innerWidth, height: innerHeight },
       deck: rect('.three-zone-draft-dock'),
@@ -46,6 +48,7 @@ async function snapshot() {
       reroll: rect('#draftReroll'),
       emp: rect('#empBtn'),
       start: rect('#startWaveBtn'),
+      rerollInsideNext: Boolean(next && reroll && next.contains(reroll)),
       visible: {
         current: visible('.tower-card.draft-current'),
         nextImage: visible('#draftNext img'),
@@ -74,6 +77,11 @@ function validate(layout, label) {
     errors.push(`${label}: zone heights are inconsistent`);
   }
   if (layout.current.width > layout.primary.width || layout.next.width > layout.signal.width) errors.push(`${label}: content escapes its zone`);
+  if (!layout.rerollInsideNext) errors.push(`${label}: reroll control is not integrated into the next-tower card`);
+  if (layout.reroll && layout.next && (
+    layout.reroll.left < layout.next.left || layout.reroll.right > layout.next.right ||
+    layout.reroll.top < layout.next.top || layout.reroll.bottom > layout.next.bottom
+  )) errors.push(`${label}: reroll control escapes the next-tower card`);
   for (const [key, isVisible] of Object.entries(layout.visible)) {
     if (!isVisible) errors.push(`${label}: ${key} is not visible`);
   }
