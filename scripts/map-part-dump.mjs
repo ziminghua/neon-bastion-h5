@@ -10,11 +10,11 @@ const browser=await chromium.launch({
 });
 const page=await browser.newPage({viewport:{width:1600,height:900}});
 await page.goto('http://127.0.0.1:8080/?qa=build',{waitUntil:'networkidle',timeout:45000});
-const parts=await page.evaluate(()=>({
-  tail0:window.__RENDERED_MAP_DELIVERY_TAIL?.[0]||'',
-  tail5:window.__RENDERED_MAP_DELIVERY_TAIL?.[5]||''
+const data=await page.evaluate(()=>({
+  delivery:window.__RENDERED_MAP_DELIVERY||'',
+  diagnostics:window.__RENDERED_MAP_DELIVERY_DIAGNOSTICS||null
 }));
-await fs.writeFile(`${out}/runtime-tail-00.txt`,parts.tail0);
-await fs.writeFile(`${out}/runtime-tail-05.txt`,parts.tail5);
+await fs.writeFile(`${out}/runtime-delivery-map-base64.txt`,data.delivery);
+await fs.writeFile(`${out}/runtime-delivery-diagnostics.json`,JSON.stringify(data.diagnostics,null,2));
 await browser.close();
-console.log(JSON.stringify({tail0:parts.tail0.length,tail5:parts.tail5.length}));
+console.log(JSON.stringify({delivery:data.delivery.length,diagnostics:data.diagnostics}));
