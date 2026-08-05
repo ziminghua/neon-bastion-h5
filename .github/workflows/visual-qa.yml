@@ -11,13 +11,18 @@ permissions:
 jobs:
   visual-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Materialize level overhaul
+        run: |
+          node scripts/apply-level-overhaul.mjs
+          node scripts/apply-level-overhaul-adjustments.mjs
 
       - name: Check active game entry
         run: npm run check
@@ -43,10 +48,15 @@ jobs:
       - name: Run draft dock layout QA
         run: node scripts/draft-layout-qa.mjs
 
-      - name: Upload screenshots and report
+      - name: Run level design acceptance QA
+        run: node scripts/level-design-qa.mjs
+
+      - name: Upload screenshots, reports, and materialized game
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: visual-qa
-          path: artifacts/visual-qa
+          path: |
+            artifacts/visual-qa
+            app.js
           if-no-files-found: error
