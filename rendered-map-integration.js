@@ -8,7 +8,6 @@
     {x:1360,y:585},{x:1460,y:520},{x:1515,y:485}
   ];
 
-  // Calibrated against the actual platform centers in the generated battlefield.
   const SLOTS = [
     {x:490,y:198,zone:'north'},
     {x:276,y:438,zone:'street'},
@@ -46,8 +45,6 @@
     context.drawImage(image, 0, 0, 1600, 900);
     context.filter = 'none';
 
-    // One-time restrained unsharp pass. This recovers platform and architecture edges
-    // after the generated map is compressed for browser delivery.
     try {
       const frame = context.getImageData(0, 0, 1600, 900);
       const source = new Uint8ClampedArray(frame.data);
@@ -100,12 +97,14 @@
 
     const style = document.createElement('style');
     style.textContent = `
-      .scanlines{opacity:.018!important}
-      body:not(.combat-active) .mission-panel,
-      body:not(.combat-active) .inspector{background:linear-gradient(165deg,rgba(4,13,25,.76),rgba(2,7,15,.7))}
-      body.combat-active .mission-panel{opacity:.1!important}
-      body.combat-active .inspector:not(:hover){opacity:.13!important}
-      body.combat-active .bottom-deck:not(:hover){opacity:.7!important}
+      .scanlines{opacity:.012!important}
+      .mission-panel{transform:scale(.86);transform-origin:left top;opacity:.68}
+      .inspector{transform:scale(.86);transform-origin:right top;opacity:.7}
+      .brand-block{opacity:.86}
+      body.combat-active .mission-panel,
+      body.combat-active .inspector{opacity:0!important;pointer-events:none;transform:scale(.82) translateY(-8px)!important}
+      body.combat-active .bottom-deck:not(:hover){opacity:.58!important;transform:translateX(-50%) translateY(12px)!important}
+      body.combat-active .topbar{opacity:.88}
     `;
     document.head.appendChild(style);
     return true;
