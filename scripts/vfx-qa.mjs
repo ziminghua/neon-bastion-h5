@@ -18,11 +18,13 @@ async function load(){
 }
 async function stage(type,slot,progresses,shotWait,file){
   await load();
-  await page.evaluate(({type,slot,progresses})=>{
-    const g=window.__NEON_TEST__;g.buildTower(type,slot);g.state.selectedBuild=null;
+  await page.evaluate(({type,slot})=>{const g=window.__NEON_TEST__;g.buildTower(type,slot);g.state.selectedBuild=null;},{type,slot});
+  await page.waitForTimeout(520);
+  await page.evaluate(({progresses})=>{
+    const g=window.__NEON_TEST__;
     const enemies=progresses.map((progress,index)=>{const e=g.createEnemy(index===0?'brute':'drone',1);e.progress=progress;e.alpha=1;e.spawnScale=1;e.hp=999;e.maxHp=999;return e;});
     g.state.enemies.push(...enemies);g.fireTower(g.state.towers[0],enemies[0]);
-  },{type,slot,progresses});
+  },{progresses});
   await page.waitForTimeout(shotWait);
   await page.screenshot({path:`${out}/${file}`});
   return page.evaluate(()=>({
@@ -35,25 +37,26 @@ async function stage(type,slot,progresses,shotWait,file){
   }));
 }
 
-const rail=await stage('rail',4,[.38],45,'30-vfx-rail.png');
+const rail=await stage('rail',4,[.38],55,'30-vfx-rail.png');
 if(!rail.beams&&!rail.rings)errors.push(`rail signature missing: ${JSON.stringify(rail)}`);
-const cryo=await stage('cryo',3,[.27],520,'31-vfx-cryo.png');
+const cryo=await stage('cryo',3,[.27],460,'31-vfx-cryo.png');
 if(cryo.frost<.3||!cryo.rings||!cryo.decals)errors.push(`cryo signature missing: ${JSON.stringify(cryo)}`);
-const plasma=await stage('plasma',6,[.56,.565,.575],620,'32-vfx-plasma.png');
+const plasma=await stage('plasma',6,[.56,.565,.575],560,'32-vfx-plasma.png');
 if(!plasma.rings||!plasma.decals)errors.push(`plasma signature missing: ${JSON.stringify(plasma)}`);
-const arcane=await stage('arcane',7,[.72,.725,.735],520,'33-vfx-arcane.png');
+const arcane=await stage('arcane',7,[.72,.725,.735],460,'33-vfx-arcane.png');
 if(!arcane.runes&&!arcane.beams)errors.push(`arcane signature missing: ${JSON.stringify(arcane)}`);
 
 await load();
 await page.evaluate(()=>{
   const g=window.__NEON_TEST__;g.state.credits=9999;
   [['rail',0],['cryo',3],['plasma',6],['arcane',7],['rail',8],['cryo',9]].forEach(([t,s])=>g.buildTower(t,s));
-  for(let i=0;i<12;i++){const e=g.createEnemy(i%4===0?'shield':i%3===0?'brute':'drone',1.4);e.progress=.18+i*.045;e.alpha=1;e.spawnScale=1;g.state.enemies.push(e);}g.state.speed=1.5;
+  for(let i=0;i<12;i++){const e=g.createEnemy(i%4===0?'shield':i%3===0?'brute':'drone',1.4);e.progress=.18+i*.045;e.alpha=1;e.spawnScale=1;g.state.enemies.push(e);}
+  g.state.waveActive=true;g.state.buildPhase=false;g.state.speed=1.5;
 });
 await page.waitForTimeout(3500);
 await page.screenshot({path:`${out}/34-vfx-mixed-combat.png`});
-const mixed=await page.evaluate(()=>({towers:window.__NEON_TEST__.state.towers.length,active:window.__NEON_TEST__.state.enemies.length,bodyClass:document.body.className,overflow:[document.documentElement.scrollWidth-innerWidth,document.documentElement.scrollHeight-innerHeight]}));
-if(mixed.towers<4||mixed.active<1||!mixed.bodyClass.includes('combat-active')&&window.__NEON_TEST__.state.waveActive)errors.push(`mixed combat state invalid: ${JSON.stringify(mixed)}`);
+const mixed=await page.evaluate(()=>({towers:window.__NEON_TEST__.state.towers.length,active:window.__NEON_TEST__.state.enemies.length,waveActive:window.__NEON_TEST__.state.waveActive,bodyClass:document.body.className,overflow:[document.documentElement.scrollWidth-innerWidth,document.documentElement.scrollHeight-innerHeight]}));
+if(mixed.towers<4||mixed.active<1||(mixed.waveActive&&!mixed.bodyClass.includes('combat-active')))errors.push(`mixed combat state invalid: ${JSON.stringify(mixed)}`);
 if(mixed.overflow.some(v=>v>0))errors.push(`mixed combat overflow: ${JSON.stringify(mixed)}`);
 
 const report={errors,rail,cryo,plasma,arcane,mixed};
