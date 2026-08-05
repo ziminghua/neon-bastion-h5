@@ -43,6 +43,7 @@
       min-width: 0 !important;
       min-height: 24px !important;
       display: flex !important;
+      flex-direction: row !important;
       align-items: center !important;
       justify-content: center !important;
       gap: 7px !important;
@@ -72,6 +73,7 @@
 
     .three-zone-draft-dock .draft-next.reroll-strip-card > .draft-reroll span {
       display: flex !important;
+      flex-direction: row !important;
       align-items: center !important;
       gap: 7px !important;
     }
