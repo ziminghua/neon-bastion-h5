@@ -39,13 +39,17 @@ await openState('03-built', '?qa=built');
 
 // Verify the tower follows the pointer, exposes a drop target, and settles on release.
 await page.goto(`${base}?qa=built`, { waitUntil: 'networkidle' });
-await page.waitForFunction(() => window.__NEON_TEST__, null, { timeout: 20000 });
+await page.waitForFunction(() => window.__NEON_TEST__?.level?.slots?.length >= 9, null, { timeout: 20000 });
 await page.waitForTimeout(500);
 const dragStage = page.locator('#game');
 const dragBox = await dragStage.boundingBox();
 if (!dragBox) throw new Error('Canvas unavailable for drag QA');
-const mapPoint = (x, y) => ({ x: dragBox.x + x / 1600 * dragBox.width, y: dragBox.y + y / 900 * dragBox.height });
-const dragFrom = mapPoint(360, 390), dragTo = mapPoint(1210, 480);
+const dragNodes = await page.evaluate(() => ({
+  from: window.__NEON_TEST__.level.slots[0],
+  to: window.__NEON_TEST__.level.slots[8]
+}));
+const mapPoint = ({ x, y }) => ({ x: dragBox.x + x / 1600 * dragBox.width, y: dragBox.y + y / 900 * dragBox.height });
+const dragFrom = mapPoint(dragNodes.from), dragTo = mapPoint(dragNodes.to);
 await page.mouse.move(dragFrom.x, dragFrom.y);
 await page.mouse.down();
 await page.mouse.move(dragTo.x, dragTo.y, { steps: 14 });
