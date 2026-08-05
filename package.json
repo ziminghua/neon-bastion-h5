@@ -1,9 +1,9 @@
 {
   "name": "neon-bastion-h5",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "serve": "python3 -m http.server 8080",
-    "check": "node --check src/app-core.js && node --check src/app-combat.js && node --check src/app-render.js && node --check src/app-ui.js"
+    "check": "node --check app.js && node --check src/platform.js && node --check src/analytics.js && node --check src/storage.js && node --check src/monetization.js && node --check src/app-core.js && node --check src/app-combat.js && node --check src/app-render.js && node --check src/app-ui.js && node --check src/monetization-hooks.js"
   }
 }
