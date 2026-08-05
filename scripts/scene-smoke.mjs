@@ -23,6 +23,9 @@ try {
   errors.push(mapWaitError);
 }
 
+const assembledMap=await page.evaluate(()=>window.__RENDERED_MAP_ASSEMBLED||'');
+await fs.writeFile(`${out}/assembled-map-base64.txt`,assembledMap);
+
 if(mapWaitError){
   await page.screenshot({path:`${out}/rendered-map-hq-failure-1600x900.png`});
   const diagnostics=await page.evaluate(()=>({
@@ -39,7 +42,7 @@ if(mapWaitError){
   }));
   await fs.writeFile(`${out}/runtime-part-03.txt`,diagnostics.part03);
   await fs.writeFile(`${out}/runtime-part-23.txt`,diagnostics.part23);
-  const reportDiagnostics={...diagnostics,part03:undefined,part23:undefined};
+  const reportDiagnostics={...diagnostics,part03:undefined,part23:undefined,assembledLength:assembledMap.length};
   await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,diagnostics:reportDiagnostics},null,2));
   await browser.close();
   console.error(JSON.stringify({errors,diagnostics:reportDiagnostics},null,2));
@@ -108,7 +111,7 @@ const mapHeight=result.mapDiagnostics?.naturalHeight||0;
 if(!result.ready||!result.renderedMap||result.mapSource!=='hq'||mapWidth<1600||mapHeight<900||result.pathPoints!==18||result.slots!==9||result.towers<4||result.enemies<4||result.assetFailures.length||result.overflow.some(value=>value>0)){
   errors.push(JSON.stringify(result));
 }
-await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,result},null,2));
+await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,result,assembledLength:assembledMap.length},null,2));
 await browser.close();
 if(errors.length){
   console.error(JSON.stringify({errors,result},null,2));
