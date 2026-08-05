@@ -1,8 +1,10 @@
 import { chromium } from 'playwright-core';
 import fs from 'node:fs/promises';
 
-await fs.mkdir('artifacts/visual-qa', { recursive: true });
-await fs.cp('assets', 'artifacts/visual-qa/assets', { recursive: true });
+const base = 'http://127.0.0.1:8080/';
+const out = 'artifacts/visual-qa';
+await fs.mkdir(out, { recursive: true });
+
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
@@ -15,44 +17,86 @@ page.on('console', msg => { if (msg.type() === 'error') errors.push(`console: ${
 page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
 page.on('requestfailed', req => errors.push(`requestfailed: ${req.url()} :: ${req.failure()?.errorText || 'unknown'}`));
 
-await page.goto('http://127.0.0.1:8080/asset-preview.html', { waitUntil: 'networkidle' });
-await page.waitForFunction(() => document.documentElement.dataset.ready === 'true', null, { timeout: 20000 });
-await page.screenshot({ path: 'artifacts/visual-qa/00-assets.png', fullPage: true });
-const assetSummary = await page.locator('#summary').textContent();
-
-await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle' });
-await page.screenshot({ path: 'artifacts/visual-qa/01-intro.png' });
-await page.locator('#enterBtn').click();
-await page.waitForTimeout(800);
-await page.screenshot({ path: 'artifacts/visual-qa/02-build.png' });
-
-const stage = page.locator('#stage');
-const box = await stage.boundingBox();
-if (!box) throw new Error('Stage not visible');
-const clickStage = async (x, y) => page.mouse.click(box.x + x / 1600 * box.width, box.y + y / 900 * box.height);
-await clickStage(360, 390);
-await page.waitForTimeout(300);
-await page.locator('[data-type="cryo"]').click();
-await clickStage(535, 350);
-await page.waitForTimeout(300);
-await page.screenshot({ path: 'artifacts/visual-qa/03-built.png' });
-await page.locator('#startWaveBtn').click();
-await page.waitForTimeout(4500);
-await page.screenshot({ path: 'artifacts/visual-qa/04-battle.png' });
-
-const result = {
-  assetSummary,
-  errors,
-  viewport: await page.evaluate(() => ({
-    innerWidth, innerHeight,
-    scrollWidth: document.documentElement.scrollWidth,
-    scrollHeight: document.documentElement.scrollHeight
-  }))
-};
-if (!assetSummary?.includes('0 failed')) errors.push(`asset summary: ${assetSummary}`);
-await fs.writeFile('artifacts/visual-qa/report.json', JSON.stringify(result, null, 2));
-if (errors.length) {
-  console.error(JSON.stringify(result, null, 2));
-  process.exitCode = 1;
+async function openState(name, query = '', wait = 700) {
+  await page.goto(`${base}${query}`, { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => window.__NEON_TEST__ && Object.keys(window.__NEON_TEST__.assets).length >= 19, null, { timeout: 20000 });
+  await page.waitForTimeout(wait);
+  const assetState = await page.evaluate(() => ({
+    failures: window.__assetLoadFailures || [],
+    assets: Object.fromEntries(Object.entries(window.__NEON_TEST__.assets).map(([key, image]) => [key, [image.naturalWidth, image.naturalHeight]]))
+  }));
+  if (assetState.failures.length) errors.push(`${name}: failed assets ${assetState.failures.join(', ')}`);
+  for (const [key, [width, height]] of Object.entries(assetState.assets)) {
+    if (!width || !height) errors.push(`${name}: invalid asset ${key} (${width}x${height})`);
+  }
+  await page.screenshot({ path: `${out}/${name}.png` });
+  return assetState;
 }
+
+await openState('01-intro');
+await openState('02-build', '?qa=build');
+await openState('03-built', '?qa=built');
+await openState('04-battle', '?qa=battle', 4200);
+await page.evaluate(() => window.__NEON_TEST__.useEMP());
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${out}/05-emp.png` });
+await openState('06-protocol', '?qa=protocol');
+await openState('07-result', '?qa=result');
+
+// Complete the actual five-wave loop at accelerated simulation speed.
+await page.goto(`${base}?qa=build`, { waitUntil: 'networkidle' });
+await page.waitForFunction(() => window.__NEON_TEST__, null, { timeout: 20000 });
+await page.evaluate(() => {
+  const test = window.__NEON_TEST__;
+  test.state.credits = 5000;
+  [['rail',0],['cryo',1],['plasma',2],['arcane',3],['rail',4],['cryo',5],['plasma',6],['arcane',7]].forEach(([type, slot]) => test.buildTower(type, slot));
+  Object.keys(test.state.mods.damage).forEach(key => { test.state.mods.damage[key] = 2.5; });
+  test.state.speed = 8;
+});
+
+for (let wave = 1; wave <= 5; wave += 1) {
+  await page.evaluate(() => window.__NEON_TEST__.startWave());
+  if (wave === 1) {
+    await page.waitForTimeout(2600);
+    await page.screenshot({ path: `${out}/08-full-run-combat.png` });
+  }
+  if (wave < 5) {
+    await page.waitForFunction(
+      () => !document.getElementById('protocolModal').classList.contains('hidden'),
+      null,
+      { timeout: 90000 }
+    );
+    await page.locator('.protocol-choice').first().click();
+    await page.waitForFunction(() => !window.__NEON_TEST__.state.paused && window.__NEON_TEST__.state.buildPhase, null, { timeout: 10000 });
+  }
+}
+await page.waitForFunction(() => !document.getElementById('resultModal').classList.contains('hidden'), null, { timeout: 90000 });
+await page.screenshot({ path: `${out}/09-full-run-result.png` });
+const fullRun = await page.evaluate(() => ({
+  wave: window.__NEON_TEST__.state.wave,
+  hp: window.__NEON_TEST__.state.hp,
+  kills: window.__NEON_TEST__.state.kills,
+  title: document.getElementById('resultTitle').textContent,
+  resultVisible: !document.getElementById('resultModal').classList.contains('hidden')
+}));
+if (fullRun.wave !== 5 || !fullRun.resultVisible || !fullRun.title.includes('SECURED')) {
+  errors.push(`full run failed: ${JSON.stringify(fullRun)}`);
+}
+
+const viewport = await page.evaluate(() => ({
+  innerWidth, innerHeight,
+  scrollWidth: document.documentElement.scrollWidth,
+  scrollHeight: document.documentElement.scrollHeight
+}));
+if (viewport.scrollWidth > viewport.innerWidth || viewport.scrollHeight > viewport.innerHeight) {
+  errors.push(`viewport overflow: ${JSON.stringify(viewport)}`);
+}
+
+const report = { errors, fullRun, viewport };
+await fs.writeFile(`${out}/report.json`, JSON.stringify(report, null, 2));
 await browser.close();
+if (errors.length) {
+  console.error(JSON.stringify(report, null, 2));
+  process.exit(1);
+}
+console.log(JSON.stringify(report, null, 2));
