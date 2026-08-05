@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Neon Bastion Asset Preview</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;padding:24px;background:#050810;color:#eef8ff}h1{margin:0 0 8px}p{color:#91a8b8}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}.card{padding:14px;border:1px solid #27445d;background:#091421}.stage{height:220px;display:grid;place-items:center;overflow:hidden;background-color:#0a1019;background-image:linear-gradient(45deg,#111a26 25%,transparent 25%),linear-gradient(-45deg,#111a26 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#111a26 75%),linear-gradient(-45deg,transparent 75%,#111a26 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}.stage img{max-width:92%;max-height:92%;object-fit:contain;image-rendering:auto}.name{margin-top:10px;font-weight:750;word-break:break-all}.meta{margin-top:4px;color:#7eddf3;font:12px ui-monospace,monospace}.error{color:#ff7188}.wide{grid-column:1/-1}.wide .stage{height:420px}
+  </style>
+</head>
+<body>
+  <h1>Neon Bastion 切图盘点</h1>
+  <p id="summary">加载中…</p>
+  <main id="grid" class="grid"></main>
+  <script>
+    const paths=[
+      'assets/world/background.webp','assets/world/core.webp','assets/ui/logo.webp',
+      'assets/towers/rail.webp','assets/towers/cryo.webp','assets/towers/plasma.webp','assets/towers/arcane.webp',
+      'assets/enemies/drone.webp','assets/enemies/runner.webp','assets/enemies/brute.webp','assets/enemies/shield.webp','assets/enemies/boss.webp',
+      'assets/fx/rail_bolt.webp','assets/fx/ice_burst.webp','assets/fx/plasma_blast.webp','assets/fx/arcane_bolt.webp','assets/fx/chain.webp','assets/fx/hit.webp','assets/fx/coin.webp'
+    ];
+    const grid=document.getElementById('grid');let done=0,failed=0;
+    for(const path of paths){
+      const card=document.createElement('section');card.className='card'+(path.includes('background')?' wide':'');
+      const stage=document.createElement('div');stage.className='stage';
+      const img=new Image();img.alt=path;img.src=path;
+      const name=document.createElement('div');name.className='name';name.textContent=path;
+      const meta=document.createElement('div');meta.className='meta';meta.textContent='pending';
+      img.onload=()=>{done++;meta.textContent=`${img.naturalWidth} × ${img.naturalHeight}`;finish();};
+      img.onerror=()=>{done++;failed++;meta.className='meta error';meta.textContent='LOAD ERROR';finish();};
+      stage.append(img);card.append(stage,name,meta);grid.append(card);
+    }
+    function finish(){
+      document.getElementById('summary').textContent=`${done}/${paths.length} loaded · ${failed} failed`;
+      if(done===paths.length) document.documentElement.dataset.ready='true';
+    }
+  </script>
+</body>
+</html>
