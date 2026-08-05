@@ -10,16 +10,16 @@ permissions:
 jobs:
   visual-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install Playwright
+      - name: Install browser driver
         run: |
-          npm install --no-save playwright
-          npx playwright install --with-deps chromium
+          which google-chrome
+          npm install --no-save playwright-core
       - name: Start static server
         run: |
           python3 -m http.server 8080 > /tmp/neon-server.log 2>&1 &
