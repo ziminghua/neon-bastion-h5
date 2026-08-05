@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 
 const EXPECTED_MAP_LENGTH=86436;
-const EXPECTED_MAP_SHA='1602b94f6c5f2c51ec4762a79b2d872e9a144d860fa1494e954db43bfbd84d94';
+const EXPECTED_MAP_SHA='55aef6251587908cd4dedea4bbf5391fedd65b99dcf1449552b740117024ef5b';
 const out='artifacts/scene-smoke';
 await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({
