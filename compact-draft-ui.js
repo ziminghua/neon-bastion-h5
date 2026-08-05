@@ -119,28 +119,18 @@
 
     .bottom-deck.compact-draft-dock .draft-next > div {
       height: 70px !important;
-      gap: 4px !important;
+      display: grid !important;
+      place-items: center !important;
     }
 
     .bottom-deck.compact-draft-dock .draft-next img {
-      width: 64px !important;
-      height: 68px !important;
-      opacity: .82 !important;
+      width: 78px !important;
+      height: 70px !important;
+      object-fit: contain !important;
+      opacity: .88 !important;
     }
 
     .bottom-deck.compact-draft-dock .draft-next p {
-      overflow: hidden;
-    }
-
-    .bottom-deck.compact-draft-dock .draft-next b {
-      max-width: 60px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 9px !important;
-      white-space: nowrap;
-    }
-
-    .bottom-deck.compact-draft-dock .draft-next small {
       display: none !important;
     }
 
