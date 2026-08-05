@@ -2,6 +2,7 @@ import { chromium } from 'playwright-core';
 import fs from 'node:fs/promises';
 
 await fs.mkdir('artifacts/visual-qa', { recursive: true });
+await fs.cp('assets', 'artifacts/visual-qa/assets', { recursive: true });
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
