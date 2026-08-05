@@ -26,8 +26,8 @@
   }
 
   function resolveMapSource() {
-    if (hasCompleteParts(window.__RENDERED_MAP_HQ_PARTS, 9)) {
-      return {quality:'hq', parts:window.__RENDERED_MAP_HQ_PARTS.slice(0, 9)};
+    if (hasCompleteParts(window.__RENDERED_MAP_HQ_PARTS, 24)) {
+      return {quality:'hq', parts:window.__RENDERED_MAP_HQ_PARTS.slice(0, 24)};
     }
     if (hasCompleteParts(window.__RENDERED_MAP_CHUNKS, 3)) {
       return {quality:'fallback', parts:window.__RENDERED_MAP_CHUNKS.slice(0, 3)};
@@ -108,6 +108,7 @@
       window.__RENDERED_MAP_SOURCE = source.quality;
       window.__RENDERED_MAP_DIAGNOSTICS = {
         source: source.quality,
+        parts: source.parts.length,
         naturalWidth: renderedMap.naturalWidth,
         naturalHeight: renderedMap.naturalHeight,
         canvasWidth: DESIGN.width,
