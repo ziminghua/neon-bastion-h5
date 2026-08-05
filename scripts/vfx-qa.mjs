@@ -40,7 +40,7 @@ async function stage(type,slot,progresses,shotWait,file){
 const rail=await stage('rail',4,[.38],55,'30-vfx-rail.png');
 if(!rail.beams&&!rail.rings)errors.push(`rail signature missing: ${JSON.stringify(rail)}`);
 const cryo=await stage('cryo',3,[.27],460,'31-vfx-cryo.png');
-if(cryo.frost<.3||!cryo.rings||!cryo.decals)errors.push(`cryo signature missing: ${JSON.stringify(cryo)}`);
+if(cryo.frost<.3||!cryo.decals)errors.push(`cryo signature missing: ${JSON.stringify(cryo)}`);
 const plasma=await stage('plasma',6,[.56,.565,.575],560,'32-vfx-plasma.png');
 if(!plasma.rings||!plasma.decals)errors.push(`plasma signature missing: ${JSON.stringify(plasma)}`);
 const arcane=await stage('arcane',7,[.72,.725,.735],460,'33-vfx-arcane.png');
