@@ -26,8 +26,6 @@ jobs:
           for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 1; done
           cat /tmp/neon-server.log
           exit 1
-      - name: Export suspect map parts
-        run: node scripts/map-part-dump.mjs
       - name: Capture rendered map smoke
         run: node scripts/scene-smoke.mjs
       - name: Upload screenshots
