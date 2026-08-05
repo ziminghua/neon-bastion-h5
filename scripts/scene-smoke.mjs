@@ -13,7 +13,34 @@ const errors=[];
 page.on('console',message=>{if(message.type()==='error')errors.push(message.text())});
 page.on('pageerror',error=>errors.push(error.message));
 await page.goto('http://127.0.0.1:8080/?qa=build&draftSeed=20260805',{waitUntil:'networkidle',timeout:45000});
-await page.waitForFunction(()=>window.__NEON_TEST__?.state?.ready&&window.__RENDERED_MAP_READY&&window.__RENDERED_MAP_SOURCE==='hq',{timeout:30000});
+await page.waitForFunction(()=>window.__NEON_TEST__?.state?.ready,{timeout:20000});
+
+let mapWaitError='';
+try {
+  await page.waitForFunction(()=>window.__RENDERED_MAP_READY&&window.__RENDERED_MAP_SOURCE==='hq',{timeout:45000});
+} catch (error) {
+  mapWaitError=error.message;
+  errors.push(mapWaitError);
+}
+
+if(mapWaitError){
+  await page.screenshot({path:`${out}/rendered-map-hq-failure-1600x900.png`});
+  const diagnostics=await page.evaluate(()=>({
+    ready:window.__NEON_TEST__?.state?.ready,
+    renderedMap:window.__RENDERED_MAP_READY,
+    mapSource:window.__RENDERED_MAP_SOURCE,
+    mapError:window.__RENDERED_MAP_ERROR,
+    hqParts:Array.isArray(window.__RENDERED_MAP_HQ_PARTS)?window.__RENDERED_MAP_HQ_PARTS.map(part=>part?.length||0):null,
+    fallbackParts:Array.isArray(window.__RENDERED_MAP_CHUNKS)?window.__RENDERED_MAP_CHUNKS.map(part=>part?.length||0):null,
+    scripts:[...document.scripts].map(script=>script.getAttribute('src')).filter(Boolean),
+    assetFailures:window.__assetLoadFailures||[]
+  }));
+  await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,diagnostics},null,2));
+  await browser.close();
+  console.error(JSON.stringify({errors,diagnostics},null,2));
+  process.exit(1);
+}
+
 await page.waitForTimeout(500);
 await page.screenshot({path:`${out}/rendered-map-build-1600x900.png`});
 
