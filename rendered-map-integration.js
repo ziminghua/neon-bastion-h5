@@ -18,8 +18,7 @@
     {x:895,y:514,zone:'reactor'},
     {x:1208,y:220,zone:'north'},
     {x:1134,y:540,zone:'bridge'},
-    {x:1202,y:744,zone:'bridge'},
-    {x:1347,y:369,zone:'core'}
+    {x:1202,y:744,zone:'bridge'}
   ];
 
   function rebuildPathInfo(pathInfo, points) {
@@ -36,6 +35,42 @@
     pathInfo.total = total;
   }
 
+  function enhanceMap(image) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1600;
+    canvas.height = 900;
+    const context = canvas.getContext('2d', {alpha:false, willReadFrequently:true});
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.filter = 'saturate(1.08) contrast(1.07) brightness(.99)';
+    context.drawImage(image, 0, 0, 1600, 900);
+    context.filter = 'none';
+
+    // One-time restrained unsharp pass. This recovers platform and architecture edges
+    // after the generated map is compressed for browser delivery.
+    try {
+      const frame = context.getImageData(0, 0, 1600, 900);
+      const source = new Uint8ClampedArray(frame.data);
+      const data = frame.data;
+      const width = 1600;
+      for (let y = 1; y < 899; y += 1) {
+        for (let x = 1; x < 1599; x += 1) {
+          const i = (y * width + x) * 4;
+          const up = i - width * 4;
+          const down = i + width * 4;
+          for (let c = 0; c < 3; c += 1) {
+            const edge = source[i + c] * 5 - source[i - 4 + c] - source[i + 4 + c] - source[up + c] - source[down + c];
+            data[i + c] = Math.max(0, Math.min(255, source[i + c] + edge * .16));
+          }
+        }
+      }
+      context.putImageData(frame, 0, 0);
+    } catch (error) {
+      console.warn('Map enhancement skipped', error);
+    }
+    return canvas;
+  }
+
   function applyIntegration() {
     const game = window.__NEON_TEST__;
     const chunks = window.__RENDERED_MAP_CHUNKS;
@@ -44,7 +79,7 @@
     const renderedMap = new Image();
     renderedMap.decoding = 'async';
     renderedMap.onload = () => {
-      game.assets.background = renderedMap;
+      game.assets.background = enhanceMap(renderedMap);
       game.level.path.splice(0, game.level.path.length, ...PATH.map(point => ({...point})));
       game.level.slots.splice(0, game.level.slots.length, ...SLOTS.map(slot => ({...slot})));
       game.level.landmarks.splice(0, game.level.landmarks.length,
@@ -61,16 +96,16 @@
     renderedMap.src = `data:image/webp;base64,${chunks.join('')}`;
 
     const canvas = document.getElementById('game');
-    if (canvas) canvas.style.filter = 'saturate(1.1) contrast(1.06) brightness(.99)';
+    if (canvas) canvas.style.filter = 'saturate(1.03) contrast(1.02)';
 
     const style = document.createElement('style');
     style.textContent = `
-      .scanlines{opacity:.025!important}
+      .scanlines{opacity:.018!important}
       body:not(.combat-active) .mission-panel,
-      body:not(.combat-active) .inspector{background:linear-gradient(165deg,rgba(4,13,25,.78),rgba(2,7,15,.72))}
-      body.combat-active .mission-panel{opacity:.11!important}
-      body.combat-active .inspector:not(:hover){opacity:.14!important}
-      body.combat-active .bottom-deck:not(:hover){opacity:.72!important}
+      body:not(.combat-active) .inspector{background:linear-gradient(165deg,rgba(4,13,25,.76),rgba(2,7,15,.7))}
+      body.combat-active .mission-panel{opacity:.1!important}
+      body.combat-active .inspector:not(:hover){opacity:.13!important}
+      body.combat-active .bottom-deck:not(:hover){opacity:.7!important}
     `;
     document.head.appendChild(style);
     return true;
