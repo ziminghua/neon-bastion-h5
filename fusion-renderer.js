@@ -12,10 +12,10 @@
   const originalFillText = proto.fillText;
 
   const towerProfiles = {
-    rail:   {scale:.79, x:0, y:7, shadowX:32, shadowY:11, glow:'#55e9ff', muzzleY:-18, muzzleR:24},
-    cryo:   {scale:.74, x:0, y:8, shadowX:28, shadowY:10, glow:'#9cecff', muzzleY:-29, muzzleR:15},
-    plasma: {scale:.80, x:0, y:7, shadowX:32, shadowY:12, glow:'#ff9c38', muzzleY:-18, muzzleR:23},
-    arcane: {scale:.76, x:0, y:8, shadowX:30, shadowY:11, glow:'#df6bff', muzzleY:-20, muzzleR:18}
+    rail:   {scale:.90, x:0, y:5, shadowX:34, shadowY:12, glow:'#55e9ff', muzzleY:-20, muzzleR:27},
+    cryo:   {scale:.84, x:0, y:6, shadowX:30, shadowY:11, glow:'#9cecff', muzzleY:-34, muzzleR:17},
+    plasma: {scale:.90, x:0, y:5, shadowX:34, shadowY:12, glow:'#ff9c38', muzzleY:-20, muzzleR:26},
+    arcane: {scale:.86, x:0, y:6, shadowX:32, shadowY:11, glow:'#df6bff', muzzleY:-23, muzzleR:21}
   };
 
   function assetKind(image) {
@@ -32,28 +32,28 @@
     ctx.save();
     ctx.shadowBlur = 0;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = .54;
-    ctx.fillStyle = 'rgba(0,0,0,.76)';
+    ctx.globalAlpha = .66;
+    ctx.fillStyle = 'rgba(0,0,0,.78)';
     ctx.beginPath();
-    ctx.ellipse(0, 23, profile.shadowX, profile.shadowY, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 24, profile.shadowX, profile.shadowY, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = .16;
-    const glow = ctx.createRadialGradient(0, 19, 2, 0, 19, 38);
+    ctx.globalAlpha = .10;
+    const glow = ctx.createRadialGradient(0, 20, 2, 0, 20, 39);
     glow.addColorStop(0, profile.glow);
-    glow.addColorStop(.34, profile.glow + '66');
+    glow.addColorStop(.34, profile.glow + '55');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.ellipse(0, 19, 38, 18, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 20, 39, 18, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.globalAlpha = .31;
+    ctx.globalAlpha = .22;
     ctx.strokeStyle = profile.glow;
-    ctx.lineWidth = 1.15;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.ellipse(0, 20, 29, 11, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 21, 30, 11, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
@@ -76,27 +76,18 @@
       return originalDrawImage.call(this, image, dx, dy, nw, nh);
     }
 
-    if (kind === 'core' && dw > 80 && dh > 80) {
-      const scale = .72;
-      const nw = dw * scale;
-      const nh = dh * scale;
-      dx += (dw - nw) / 2;
-      dy += (dh - nh) / 2 + 12;
-      this.save();
-      this.globalCompositeOperation = 'screen';
-      this.globalAlpha = .62;
-      const result = originalDrawImage.call(this, image, dx, dy, nw, nh);
-      this.restore();
-      return result;
-    }
+    // The authored map already contains the core crystal and its platform. Keeping the
+    // legacy sprite here creates a duplicated, floating crystal, so only the live rings
+    // and damage feedback from drawCore are retained.
+    if (kind === 'core' && dw > 80 && dh > 80) return;
 
     if (kind === 'enemy' && dw > 25 && dw < 130) {
       this.save();
-      this.shadowColor = 'rgba(0,0,0,.78)';
+      this.shadowColor = 'rgba(0,0,0,.82)';
       this.shadowBlur = 8;
       this.shadowOffsetY = 6;
-      const nw = dw * .9;
-      const nh = dh * .9;
+      const nw = dw * .88;
+      const nh = dh * .88;
       const result = originalDrawImage.call(this, image, dx + (dw - nw) / 2, dy + (dh - nh) / 2 + 3, nw, nh);
       this.restore();
       return result;
@@ -123,7 +114,7 @@
     }
     if (this.canvas?.id === 'game' && String(this.fillStyle) === 'rgba(7, 20, 29, 0.22)') {
       this.save();
-      this.globalAlpha *= .26;
+      this.globalAlpha *= .12;
       const result = originalFill.apply(this, args);
       this.restore();
       return result;
@@ -138,7 +129,7 @@
     }
     if (this.canvas?.id === 'game' && String(this.strokeStyle).toLowerCase() === '#58dfff' && this.lineWidth <= 1.7) {
       this.save();
-      this.globalAlpha *= .32;
+      this.globalAlpha *= .16;
       const result = originalStroke.apply(this, args);
       this.restore();
       return result;
