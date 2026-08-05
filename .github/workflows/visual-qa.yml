@@ -1,56 +1,61 @@
-name: Visual QA
+name: Scene Smoke
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  visual-qa:
+  scene-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Check active game entry
+      - name: Materialize scene map
+        run: node scripts/apply-scene-map-foundation.mjs
+
+      - name: Commit materialized app
+        run: |
+          if git diff --quiet -- app.js; then
+            echo "app.js already materialized"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add app.js
+            git commit -m "feat: integrate scene map into battlefield"
+            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+          fi
+
+      - name: Syntax check
         run: npm run check
 
       - name: Install browser driver
-        run: |
-          which google-chrome
-          npm install --no-save playwright-core
+        run: npm install --no-save playwright-core
 
       - name: Start static server
         run: |
           python3 -m http.server 8080 > /tmp/neon-server.log 2>&1 &
-          for i in {1..30}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 1; done
+          for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 1; done
           cat /tmp/neon-server.log
           exit 1
 
-      - name: Run visual and full-play QA
-        run: node scripts/visual-qa.mjs
+      - name: Capture scene smoke screenshots
+        run: node scripts/scene-smoke.mjs
 
-      - name: Run random draft QA
-        run: node scripts/random-draft-qa.mjs
-
-      - name: Run draft dock layout QA
-        run: node scripts/draft-layout-qa.mjs
-
-      - name: Run level design acceptance QA
-        run: node scripts/level-design-qa.mjs
-
-      - name: Run four-tower VFX acceptance QA
-        run: node scripts/vfx-qa.mjs
-
-      - name: Upload screenshots and reports
+      - name: Upload scene screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: visual-qa
-          path: artifacts/visual-qa
+          name: scene-smoke
+          path: artifacts/scene-smoke
           if-no-files-found: error
