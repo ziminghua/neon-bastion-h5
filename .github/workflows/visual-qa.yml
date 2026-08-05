@@ -1,8 +1,6 @@
 name: Visual QA
 
 on:
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +9,7 @@ permissions:
 jobs:
   visual-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 14
     steps:
       - uses: actions/checkout@v4
 
@@ -45,6 +43,9 @@ jobs:
 
       - name: Run level design acceptance QA
         run: node scripts/level-design-qa.mjs
+
+      - name: Run four-tower VFX acceptance QA
+        run: node scripts/vfx-qa.mjs
 
       - name: Upload screenshots and reports
         if: always()
