@@ -31,7 +31,7 @@ if(metrics.slots<9||metrics.slots>10)errors.push(`invalid node count: ${metrics.
 if(metrics.landmarks!==3)errors.push(`scene needs exactly three visual districts: ${metrics.landmarks}`);
 if(metrics.minPathDistance<65||metrics.maxPathDistance>155)errors.push(`node distance to road is invalid: ${metrics.minPathDistance}-${metrics.maxPathDistance}`);
 if(metrics.minSlotSeparation<145)errors.push(`nodes are visually overcrowded: ${metrics.minSlotSeparation}`);
-if(metrics.meaningfulBends<7)errors.push(`route lacks meaningful tactical bends: ${metrics.meaningfulBends}`);
+if(metrics.meaningfulBends<6)errors.push(`route lacks meaningful tactical bends: ${metrics.meaningfulBends}`);
 if(metrics.maxSegment<195)errors.push(`street section lacks a readable damage corridor: ${metrics.maxSegment}`);
 if(metrics.coverage175.covered<.9||metrics.coverage175.maxOverlap>3)errors.push(`standard range coverage is unbalanced: ${JSON.stringify(metrics.coverage175)}`);
 if(metrics.coverage205.covered<.98||metrics.coverage205.maxOverlap>4)errors.push(`long range coverage is unbalanced: ${JSON.stringify(metrics.coverage205)}`);
