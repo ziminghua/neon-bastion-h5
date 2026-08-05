@@ -3,43 +3,103 @@ name: Visual QA
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   visual-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Recover original upload assets
+
+      - name: Restore original art and build 16:9 playable
+        shell: bash
         run: |
-          mkdir -p artifacts/visual-qa/historical
+          set -euo pipefail
+          rm -rf /tmp/neon-original /tmp/neon-original.zip
           git show 974896bab112d6626e171fca4098cf34666828ba:'neon-bastion-h5(1).zip' > /tmp/neon-original.zip
           unzip -q /tmp/neon-original.zip -d /tmp/neon-original
-          cp -R /tmp/neon-original/neon-bastion-h5/assets artifacts/visual-qa/historical/assets
-          cp /tmp/neon-original/neon-bastion-h5/index.html artifacts/visual-qa/historical/index.html
-          cp /tmp/neon-original/neon-bastion-h5/app.js artifacts/visual-qa/historical/app.js
-          cp /tmp/neon-original/neon-bastion-h5/styles.css artifacts/visual-qa/historical/styles.css
+          source_dir='/tmp/neon-original/neon-bastion-h5'
+          test -s "$source_dir/app.js"
+          test -d "$source_dir/assets"
+
+          rm -rf assets
+          cp -R "$source_dir/assets" ./assets
+          cp "$source_dir/app.js" app.js
+          cp templates/index-v2.html index.html
+          cp templates/styles-v2.css styles.css
+          python3 scripts/rebuild_app.py
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('app.js')
+          text = path.read_text()
+          text = text.replace(
+              "if(['built','battle','protocol','result'].includes(qa)){\n      buildTower",
+              "if(['built','battle','protocol','result'].includes(qa)){\n      state.credits=1000;\n      buildTower",
+          )
+          replacements = {
+              '该NODE OCCUPIED，可拖动炮塔调整': 'NODE OCCUPIED — DRAG A TOWER TO REDEPLOY',
+              '部署容量已满，请合成或升级': 'TOWER LIMIT REACHED — MERGE OR UPGRADE',
+              '炮塔已重新部署': 'TOWER RELOCATED',
+              ' 合成至 Lv.': ' MERGED TO LV.',
+              '炮塔位置已交换': 'TOWER POSITIONS SWAPPED',
+              '已回收 ': 'SALVAGED ',
+              ' 能源币': ' CREDITS',
+              '核心 -': 'CORE -',
+          }
+          for source, target in replacements.items():
+              text = text.replace(source, target)
+          path.write_text(text)
+          remaining = [(number, line) for number, line in enumerate(text.splitlines(), 1) if re.search(r'[\u4e00-\u9fff]', line)]
+          if remaining:
+              raise SystemExit(f'Untranslated player-facing strings remain: {remaining}')
+          PY
+
+          node --check app.js
+          git diff --check
+
+      - name: Commit restored playable to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets app.js index.html styles.css
+          if git diff --cached --quiet; then
+            echo 'Generated playable is already current.'
+          else
+            git commit -m 'feat: restore original art in 16:9 playable'
+            git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          fi
+
       - name: Install browser driver
         run: |
           which google-chrome
           npm install --no-save playwright-core
+
       - name: Start static server
         run: |
           python3 -m http.server 8080 > /tmp/neon-server.log 2>&1 &
           for i in {1..30}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 1; done
           cat /tmp/neon-server.log
           exit 1
-      - name: Run visual QA
+
+      - name: Run visual and full-play QA
         run: node scripts/visual-qa.mjs
-      - name: Upload screenshots and recovered sources
+
+      - name: Upload screenshots and report
         if: always()
         uses: actions/upload-artifact@v4
         with:
