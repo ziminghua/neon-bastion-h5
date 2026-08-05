@@ -21,8 +21,17 @@ await page.evaluate(()=>{
   const g=window.__NEON_TEST__;
   g.state.credits=5000;
   [['rail',0],['cryo',3],['plasma',6],['arcane',7]].forEach(([type,slot])=>g.buildTower(type,slot));
+});
+await page.waitForTimeout(750);
+await page.screenshot({path:`${out}/rendered-map-deployed-1600x900.png`});
+await page.evaluate(()=>{
+  const g=window.__NEON_TEST__;
   g.startWave();
   g.state.spawnQueue=[];
+});
+await page.waitForTimeout(1850);
+await page.evaluate(()=>{
+  const g=window.__NEON_TEST__;
   const specs=[
     ['drone',.19],['runner',.24],['drone',.29],['brute',.39],
     ['shield',.47],['runner',.60],['brute',.68],['shield',.78]
@@ -37,9 +46,9 @@ await page.evaluate(()=>{
   const targets=[g.state.enemies[2],g.state.enemies[1],g.state.enemies[4],g.state.enemies[6]];
   g.state.towers.forEach((tower,index)=>g.fireTower(tower,targets[index]));
 });
-await page.waitForTimeout(55);
+await page.waitForTimeout(45);
 await page.screenshot({path:`${out}/rendered-map-volley-1600x900.png`});
-await page.waitForTimeout(420);
+await page.waitForTimeout(390);
 await page.screenshot({path:`${out}/rendered-map-impact-1600x900.png`});
 
 const result=await page.evaluate(()=>({
