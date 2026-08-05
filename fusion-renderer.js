@@ -28,7 +28,13 @@
     }
     if (src.includes('/assets/world/core.webp')) return 'core';
     if (src.includes('/assets/enemies/')) return 'enemy';
+    if (src.includes('/assets/fx/hit.webp')) return 'hitFx';
     return '';
+  }
+
+  function isEmptyNodeStroke(value) {
+    const color = String(value).replace(/\s+/g, '').toLowerCase();
+    return color === '#58dfff' || color === 'rgb(88,223,255)' || color === 'rgba(88,223,255,1)';
   }
 
   function drawTowerFoundation(ctx, profile) {
@@ -68,6 +74,8 @@
 
     const kind = assetKind(image);
     let [dx, dy, dw, dh] = args;
+
+    if (kind === 'hitFx') return;
 
     if (towerProfiles[kind] && dw > 70 && dw < 150 && dh > 70 && dh < 150) {
       const profile = towerProfiles[kind];
@@ -159,7 +167,7 @@
     if (this.canvas?.id === 'game' && String(this.fillStyle) === 'rgba(7, 20, 29, 0.22)') {
       if (document.body.classList.contains('combat-active')) return;
       this.save();
-      this.globalAlpha *= .12;
+      this.globalAlpha *= .09;
       const result = originalFill.apply(this, args);
       this.restore();
       return result;
@@ -172,10 +180,10 @@
       this.__neonSkipShapeOps -= 1;
       return;
     }
-    if (this.canvas?.id === 'game' && String(this.strokeStyle).toLowerCase() === '#58dfff' && this.lineWidth <= 1.7) {
+    if (this.canvas?.id === 'game' && isEmptyNodeStroke(this.strokeStyle) && this.lineWidth <= 1.7) {
       if (document.body.classList.contains('combat-active')) return;
       this.save();
-      this.globalAlpha *= .16;
+      this.globalAlpha *= .13;
       const result = originalStroke.apply(this, args);
       this.restore();
       return result;
