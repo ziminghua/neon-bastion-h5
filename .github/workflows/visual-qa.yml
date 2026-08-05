@@ -13,9 +13,20 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Recover original upload assets
+        run: |
+          mkdir -p artifacts/visual-qa/historical
+          git show 974896bab112d6626e171fca4098cf34666828ba:'neon-bastion-h5(1).zip' > /tmp/neon-original.zip
+          unzip -q /tmp/neon-original.zip -d /tmp/neon-original
+          cp -R /tmp/neon-original/neon-bastion-h5/assets artifacts/visual-qa/historical/assets
+          cp /tmp/neon-original/neon-bastion-h5/index.html artifacts/visual-qa/historical/index.html
+          cp /tmp/neon-original/neon-bastion-h5/app.js artifacts/visual-qa/historical/app.js
+          cp /tmp/neon-original/neon-bastion-h5/styles.css artifacts/visual-qa/historical/styles.css
       - name: Install browser driver
         run: |
           which google-chrome
@@ -28,7 +39,7 @@ jobs:
           exit 1
       - name: Run visual QA
         run: node scripts/visual-qa.mjs
-      - name: Upload screenshots
+      - name: Upload screenshots and recovered sources
         if: always()
         uses: actions/upload-artifact@v4
         with:
