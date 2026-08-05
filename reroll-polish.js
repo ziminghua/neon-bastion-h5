@@ -30,33 +30,24 @@
       height: 46px !important;
     }
 
-    .three-zone-draft-dock .draft-next.reroll-strip-card b {
+    .three-zone-draft-dock .draft-next.reroll-strip-card > div:not(.draft-reroll) b {
       max-width: none !important;
       font-size: 8px !important;
     }
 
-    .three-zone-draft-dock .draft-next.reroll-strip-card .draft-reroll {
+    .three-zone-draft-dock .draft-next.reroll-strip-card > .draft-reroll {
       grid-column: 1 !important;
       grid-row: 3 !important;
       width: 100% !important;
       height: 24px !important;
       min-width: 0 !important;
-      padding: 0 !important;
-      border: 0 !important;
-      border-left: 0 !important;
-      align-self: stretch !important;
-      background: transparent !important;
-    }
-
-    .three-zone-draft-dock .draft-next.reroll-strip-card .draft-reroll button {
-      width: 100% !important;
-      height: 24px !important;
       min-height: 24px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      gap: 8px !important;
+      gap: 7px !important;
       padding: 0 8px !important;
+      color: #dffcff !important;
       border: 1px solid rgba(82,233,255,.22) !important;
       border-radius: 0 !important;
       background: linear-gradient(90deg,rgba(12,45,64,.7),rgba(5,21,35,.78)) !important;
@@ -64,12 +55,28 @@
       clip-path: polygon(3% 0,97% 0,100% 22%,100% 78%,97% 100%,3% 100%,0 78%,0 22%) !important;
     }
 
-    .three-zone-draft-dock .draft-next.reroll-strip-card .draft-reroll button:hover:not(:disabled) {
+    .three-zone-draft-dock .draft-next.reroll-strip-card > .draft-reroll:hover:not(:disabled) {
       border-color: rgba(82,233,255,.48) !important;
       filter: brightness(1.1);
     }
 
-    .three-zone-draft-dock .draft-next.reroll-strip-card .draft-reroll button b {
+    .three-zone-draft-dock .draft-next.reroll-strip-card > .draft-reroll i {
+      display: inline !important;
+      width: auto !important;
+      height: auto !important;
+      color: #bff7ff !important;
+      font-size: 12px !important;
+      font-style: normal !important;
+      line-height: 1 !important;
+    }
+
+    .three-zone-draft-dock .draft-next.reroll-strip-card > .draft-reroll span {
+      display: flex !important;
+      align-items: center !important;
+      gap: 7px !important;
+    }
+
+    .three-zone-draft-dock .draft-next.reroll-strip-card > .draft-reroll b {
       display: inline !important;
       color: #c9f8ff !important;
       font-size: 7px !important;
@@ -77,12 +84,7 @@
       line-height: 1 !important;
     }
 
-    .three-zone-draft-dock .draft-next.reroll-strip-card .draft-reroll button b::before {
-      content: none !important;
-      display: none !important;
-    }
-
-    .three-zone-draft-dock .draft-next.reroll-strip-card .draft-reroll button small {
+    .three-zone-draft-dock .draft-next.reroll-strip-card > .draft-reroll small {
       display: inline !important;
       margin: 0 !important;
       color: #ffd364 !important;
@@ -93,7 +95,7 @@
 
   function install() {
     const next = document.getElementById('draftNext');
-    const reroll = document.getElementById('draftReroll')?.closest('.draft-reroll');
+    const reroll = document.getElementById('draftReroll');
     if (!next || !reroll || !document.querySelector('.three-zone-draft-dock')) return false;
     if (!next.contains(reroll)) next.append(reroll);
     next.classList.add('reroll-strip-card');
