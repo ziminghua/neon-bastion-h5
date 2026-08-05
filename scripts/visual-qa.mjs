@@ -57,7 +57,7 @@ await page.evaluate(() => {
 for (let wave = 1; wave <= 5; wave += 1) {
   await page.evaluate(() => window.__NEON_TEST__.startWave());
   if (wave === 1) {
-    await page.waitForTimeout(2600);
+    await page.waitForTimeout(900);
     await page.screenshot({ path: `${out}/08-full-run-combat.png` });
   }
   if (wave < 5) {
@@ -92,7 +92,28 @@ if (viewport.scrollWidth > viewport.innerWidth || viewport.scrollHeight > viewpo
   errors.push(`viewport overflow: ${JSON.stringify(viewport)}`);
 }
 
-const report = { errors, fullRun, viewport };
+// Verify the same fixed 16:9 composition scales cleanly to a common laptop viewport.
+await page.setViewportSize({ width: 1280, height: 720 });
+await page.goto(`${base}?qa=built`, { waitUntil: 'networkidle' });
+await page.waitForFunction(() => window.__NEON_TEST__, null, { timeout: 20000 });
+await page.waitForTimeout(700);
+const responsive = await page.evaluate(() => {
+  const shell = document.getElementById('game-shell').getBoundingClientRect();
+  return {
+    innerWidth,
+    innerHeight,
+    shellWidth: shell.width,
+    shellHeight: shell.height,
+    scrollWidth: document.documentElement.scrollWidth,
+    scrollHeight: document.documentElement.scrollHeight
+  };
+});
+await page.screenshot({ path: `${out}/10-responsive-1280x720.png` });
+if (Math.abs(responsive.shellWidth - 1280) > 1 || Math.abs(responsive.shellHeight - 720) > 1 || responsive.scrollWidth > 1280 || responsive.scrollHeight > 720) {
+  errors.push(`responsive layout failed: ${JSON.stringify(responsive)}`);
+}
+
+const report = { errors, fullRun, viewport, responsive };
 await fs.writeFile(`${out}/report.json`, JSON.stringify(report, null, 2));
 await browser.close();
 if (errors.length) {
