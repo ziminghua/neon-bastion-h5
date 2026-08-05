@@ -22,7 +22,7 @@ const ui = {
 };
 
 const ASSET_PATHS = {
-  background: 'assets/world/background.webp', core: 'assets/world/core.webp', logo: 'assets/ui/logo.webp',
+  background: 'assets/world/lower-district-map.svg', core: 'assets/world/core.webp', logo: 'assets/ui/logo.webp',
   rail: 'assets/towers/rail.webp', cryo: 'assets/towers/cryo.webp', plasma: 'assets/towers/plasma.webp', arcane: 'assets/towers/arcane.webp',
   drone: 'assets/enemies/drone.webp', runner: 'assets/enemies/runner.webp', brute: 'assets/enemies/brute.webp', shield: 'assets/enemies/shield.webp', boss: 'assets/enemies/boss.webp',
   rail_bolt: 'assets/fx/rail_bolt.webp', ice_burst: 'assets/fx/ice_burst.webp', plasma_blast: 'assets/fx/plasma_blast.webp',
@@ -45,7 +45,7 @@ const ENEMY_TYPES = {
   boss: { name: 'Abyss Executor', hp: 980, speed: 38, reward: 180, radius: 56, asset: 'boss', armor: 0.20, boss: true, color: '#c477ff' }
 };
 
-// PRODUCTION_SCENE_VFX_V1
+// SCENE_MAP_FOUNDATION_V2
 const LEVEL = {
   name: 'LOWER DISTRICT', waves: 5,
   path: [
@@ -409,44 +409,31 @@ function update(dt) {
   dt*=state.speed;state.ambientTime+=dt;state.empCooldown=Math.max(0,state.empCooldown-dt);updateSpawning(dt);updateEnemies(dt);updateTowers(dt);updateProjectiles(dt);updateEffects(dt);updateUI(false);
 }
 
-const SCENE_BLOCKS=[
-  {x:65,y:170,w:250,h:120,c:'#1bdfff'},{x:360,y:145,w:185,h:92,c:'#8b63ff'},
-  {x:1080,y:160,w:210,h:105,c:'#22cfe8'},{x:1320,y:170,w:180,h:120,c:'#ff5a92'},
-  {x:80,y:680,w:225,h:70,c:'#ff5a92'},{x:430,y:685,w:170,h:55,c:'#1bdfff'},
-  {x:1090,y:700,w:170,h:45,c:'#8b63ff'},{x:1370,y:670,w:150,h:65,c:'#1bdfff'}
-];
-function drawSceneBlock(b){
-  ctx.save();ctx.fillStyle='rgba(2,10,21,.92)';ctx.strokeStyle=rgba(b.c,.2);ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(b.x,b.y,b.w,b.h,8);ctx.fill();ctx.stroke();
-  ctx.fillStyle='rgba(7,24,39,.9)';ctx.fillRect(b.x+10,b.y+10,b.w-20,9);ctx.fillStyle=rgba(b.c,.18);
-  for(let x=b.x+14;x<b.x+b.w-12;x+=24)ctx.fillRect(x,b.y+b.h-16,11,3);
-  ctx.strokeStyle=rgba(b.c,.13);for(let x=b.x+28;x<b.x+b.w;x+=54){ctx.beginPath();ctx.moveTo(x,b.y);ctx.lineTo(x-16,b.y-22);ctx.stroke();}
-  ctx.restore();
-}
 function drawBackground(){
   ctx.drawImage(img.background,0,0,img.background.width,img.background.height,0,0,DESIGN.w,DESIGN.h);
-  ctx.fillStyle='rgba(0,6,14,.68)';ctx.fillRect(0,0,DESIGN.w,DESIGN.h);
-  const sky=ctx.createLinearGradient(0,100,0,760);sky.addColorStop(0,'rgba(3,16,31,.22)');sky.addColorStop(1,'rgba(0,4,10,.82)');ctx.fillStyle=sky;ctx.fillRect(0,0,1600,760);
-  SCENE_BLOCKS.forEach(drawSceneBlock);
-  // Street plates
-  ctx.save();ctx.strokeStyle='rgba(53,116,145,.1)';ctx.lineWidth=1;for(let x=120;x<1520;x+=84){ctx.beginPath();ctx.moveTo(x,205);ctx.lineTo(x-120,740);ctx.stroke();}for(let y=220;y<740;y+=64){ctx.beginPath();ctx.moveTo(70,y);ctx.lineTo(1530,y);ctx.stroke();}ctx.restore();
-  // Reactor plaza landmark
-  ctx.save();ctx.translate(820,400);ctx.fillStyle='rgba(3,13,28,.76)';ctx.strokeStyle='rgba(91,215,255,.18)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,178,0,Math.PI*2);ctx.fill();ctx.stroke();
-  for(let i=0;i<3;i++){ctx.strokeStyle=i===1?'rgba(220,78,255,.18)':'rgba(67,220,255,.13)';ctx.lineWidth=8-i*2;ctx.beginPath();ctx.arc(0,0,72+i*38,state.ambientTime*.08*(i%2?1:-1),Math.PI*1.35+state.ambientTime*.08*(i%2?1:-1));ctx.stroke();}
-  ctx.fillStyle='rgba(16,40,61,.86)';ctx.beginPath();ctx.arc(0,0,58,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(113,235,255,.34)';ctx.lineWidth=2;ctx.stroke();ctx.restore();
-  // Elevated bridge deck and supports
-  ctx.save();ctx.fillStyle='rgba(2,11,23,.88)';ctx.strokeStyle='rgba(71,184,216,.16)';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(1010,606,430,94,18);ctx.fill();ctx.stroke();
-  for(let x=1060;x<1410;x+=96){ctx.fillStyle='rgba(4,17,31,.95)';ctx.fillRect(x,694,24,44);ctx.strokeStyle='rgba(62,175,211,.16)';ctx.strokeRect(x,694,24,44);}ctx.restore();
-  const vignette=ctx.createRadialGradient(810,430,210,810,430,930);vignette.addColorStop(0,'rgba(0,0,0,0)');vignette.addColorStop(1,'rgba(0,0,0,.68)');ctx.fillStyle=vignette;ctx.fillRect(0,0,1600,900);
+  const reactorPulse=.025+.012*Math.sin(state.ambientTime*1.7);
+  const reactor=ctx.createRadialGradient(820,400,18,820,400,220);
+  reactor.addColorStop(0,'rgba(107,229,255,'+reactorPulse+')');
+  reactor.addColorStop(.52,'rgba(56,115,150,'+(reactorPulse*.35)+')');
+  reactor.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=reactor;ctx.fillRect(580,160,480,480);
+  const core=ctx.createRadialGradient(1495,495,12,1495,495,150);
+  core.addColorStop(0,'rgba(208,102,255,.07)');core.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=core;ctx.fillRect(1340,340,260,310);
+  const vignette=ctx.createRadialGradient(805,425,280,805,425,980);
+  vignette.addColorStop(0,'rgba(0,0,0,0)');vignette.addColorStop(1,'rgba(0,0,0,.36)');
+  ctx.fillStyle=vignette;ctx.fillRect(0,0,DESIGN.w,DESIGN.h);
 }
 function drawPath(){
   const pts=LEVEL.path;ctx.save();ctx.lineJoin='round';ctx.lineCap='round';
-  ctx.shadowBlur=13;ctx.shadowColor='rgba(213,72,255,.42)';ctx.strokeStyle='rgba(99,40,125,.34)';ctx.lineWidth=48;pathStroke(pts);
-  ctx.shadowBlur=0;ctx.strokeStyle='rgba(18,29,43,.98)';ctx.lineWidth=38;pathStroke(pts);
-  ctx.strokeStyle='rgba(66,91,112,.74)';ctx.lineWidth=30;pathStroke(pts);
-  ctx.strokeStyle='rgba(5,15,26,.96)';ctx.lineWidth=24;pathStroke(pts);
-  const edge=ctx.createLinearGradient(70,590,1510,500);edge.addColorStop(0,'#ff527b');edge.addColorStop(.48,'#b957ff');edge.addColorStop(1,'#5ae8ff');ctx.strokeStyle=edge;ctx.lineWidth=3;pathStroke(pts);
-  ctx.strokeStyle='rgba(188,218,235,.38)';ctx.lineWidth=1.3;ctx.setLineDash([18,24]);pathStroke(pts);ctx.setLineDash([]);
-  for(let i=0;i<8;i++){const p=pathPoint(((state.ambientTime*.035+i/8)%1));ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.fillStyle='rgba(127,225,255,.55)';ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(-5,-4);ctx.lineTo(-1,0);ctx.lineTo(-5,4);ctx.closePath();ctx.fill();ctx.restore();}
+  ctx.globalAlpha=state.waveActive?.18:.3;
+  ctx.strokeStyle='rgba(185,218,232,.58)';ctx.lineWidth=1.2;ctx.setLineDash([15,24]);pathStroke(pts);ctx.setLineDash([]);
+  const arrows=state.waveActive?5:7;
+  for(let i=0;i<arrows;i++){
+    const p=pathPoint((state.ambientTime*.028+i/arrows)%1);
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle);ctx.fillStyle='rgba(116,214,230,.55)';
+    ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-4,-3.5);ctx.lineTo(-1,0);ctx.lineTo(-4,3.5);ctx.closePath();ctx.fill();ctx.restore();
+  }
   ctx.restore();
 }
 function pathStroke(pts){ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();}
@@ -460,10 +447,10 @@ function drawSlots(){
     const t=towerAtSlot(i),hover=i===state.hoverSlot,selected=t&&t===state.selectedTower,target=Boolean(dragging&&hover);
     const merge=target&&t&&t!==dragging&&t.type===dragging.type&&t.level===dragging.level,swap=target&&t&&t!==dragging&&!merge;
     const color=merge?'#ffd86f':swap?'#8db5ff':target?'#76ffc2':t?t.def.color:'#58dfff';
-    const alpha=t||hover||target?1:reveal?.62:.13,pulse=target?1+Math.sin(performance.now()*.012)*.07:1;
+    const alpha=t||hover||target?1:reveal?.48:.045,pulse=target?1+Math.sin(performance.now()*.012)*.07:1;
     ctx.save();ctx.globalAlpha=alpha;ctx.translate(p.x,p.y);ctx.scale(pulse,pulse);ctx.shadowColor=color;ctx.shadowBlur=target?24:hover||selected?18:reveal?8:0;
-    ctx.fillStyle=t?'rgba(3,13,27,.86)':'rgba(4,18,31,.58)';ctx.strokeStyle=color;ctx.lineWidth=target?3:hover||selected?2:1.2;polygon(0,0,target?34:28,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-    ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;polygon(0,0,21,8);ctx.stroke();
+    ctx.fillStyle=t?'rgba(3,13,27,.82)':'rgba(7,20,29,.22)';ctx.strokeStyle=color;ctx.lineWidth=target?3:hover||selected?2:1;polygon(0,0,target?31:25,8);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;polygon(0,0,18,8);ctx.stroke();
     if(!t||t===dragging){ctx.strokeStyle=color;ctx.lineWidth=1.7;ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(7,0);ctx.moveTo(0,-7);ctx.lineTo(0,7);ctx.stroke();}
     if(target){ctx.fillStyle=color;ctx.font='800 9px sans-serif';ctx.textAlign='center';ctx.fillText(merge?'MERGE':swap?'SWAP':'DEPLOY',0,45);}ctx.restore();
   });
