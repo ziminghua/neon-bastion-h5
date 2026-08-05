@@ -10,7 +10,7 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,10 +28,14 @@ jobs:
           exit 1
       - name: Capture rendered map smoke
         run: node scripts/scene-smoke.mjs
+      - name: Run release five-wave QA
+        run: node scripts/visual-qa.mjs
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rendered-map-smoke
-          path: artifacts/scene-smoke
+          name: rendered-map-release-qa
+          path: |
+            artifacts/scene-smoke
+            artifacts/visual-qa
           if-no-files-found: error
