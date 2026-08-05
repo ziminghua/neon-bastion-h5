@@ -4,6 +4,6 @@
   "private": true,
   "scripts": {
     "serve": "python3 -m http.server 8080",
-    "check": "node --check app.js"
+    "check": "node --check app.js && node --check random-draft.js && node --check compact-draft-ui.js"
   }
 }
