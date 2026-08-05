@@ -16,14 +16,32 @@ await page.goto('http://127.0.0.1:8080/?qa=build&draftSeed=20260805',{waitUntil:
 await page.waitForFunction(()=>window.__NEON_TEST__?.state?.ready&&window.__RENDERED_MAP_READY,{timeout:20000});
 await page.waitForTimeout(350);
 await page.screenshot({path:`${out}/rendered-map-build-1600x900.png`});
+
 await page.evaluate(()=>{
   const g=window.__NEON_TEST__;
   g.state.credits=5000;
   [['rail',0],['cryo',3],['plasma',6],['arcane',7]].forEach(([type,slot])=>g.buildTower(type,slot));
   g.startWave();
+  g.state.spawnQueue=[];
+  const specs=[
+    ['drone',.19],['runner',.24],['drone',.29],['brute',.39],
+    ['shield',.47],['runner',.60],['brute',.68],['shield',.78]
+  ];
+  g.state.enemies=specs.map(([type,progress])=>{
+    const enemy=g.createEnemy(type,1.3);
+    enemy.progress=progress;
+    enemy.alpha=1;
+    enemy.spawnScale=1;
+    return enemy;
+  });
+  const targets=[g.state.enemies[2],g.state.enemies[1],g.state.enemies[4],g.state.enemies[6]];
+  g.state.towers.forEach((tower,index)=>g.fireTower(tower,targets[index]));
 });
-await page.waitForTimeout(2600);
-await page.screenshot({path:`${out}/rendered-map-battle-1600x900.png`});
+await page.waitForTimeout(55);
+await page.screenshot({path:`${out}/rendered-map-volley-1600x900.png`});
+await page.waitForTimeout(420);
+await page.screenshot({path:`${out}/rendered-map-impact-1600x900.png`});
+
 const result=await page.evaluate(()=>({
   ready:window.__NEON_TEST__.state.ready,
   renderedMap:window.__RENDERED_MAP_READY===true,
@@ -34,7 +52,7 @@ const result=await page.evaluate(()=>({
   assetFailures:window.__assetLoadFailures||[],
   overflow:[document.documentElement.scrollWidth-innerWidth,document.documentElement.scrollHeight-innerHeight]
 }));
-if(!result.ready||!result.renderedMap||result.pathPoints<15||result.slots<8||result.towers<4||result.assetFailures.length||result.overflow.some(v=>v>0))errors.push(JSON.stringify(result));
+if(!result.ready||!result.renderedMap||result.pathPoints<15||result.slots<8||result.towers<4||result.enemies<4||result.assetFailures.length||result.overflow.some(v=>v>0))errors.push(JSON.stringify(result));
 await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,result},null,2));
 await browser.close();
 if(errors.length){console.error(JSON.stringify({errors,result},null,2));process.exit(1)}
