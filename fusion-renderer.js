@@ -15,10 +15,15 @@
   const originalFillText = proto.fillText;
 
   const towerProfiles = {
-    rail:   {scale:.90, x:0, y:5, shadowX:34, shadowY:12, glow:'#55e9ff', muzzleY:-20, muzzleR:27},
-    cryo:   {scale:.84, x:0, y:6, shadowX:30, shadowY:11, glow:'#9cecff', muzzleY:-34, muzzleR:17},
-    plasma: {scale:.90, x:0, y:5, shadowX:34, shadowY:12, glow:'#ff9c38', muzzleY:-20, muzzleR:26},
-    arcane: {scale:.86, x:0, y:6, shadowX:32, shadowY:11, glow:'#df6bff', muzzleY:-23, muzzleR:21}
+    rail:   {scale:1.08, x:0, y:-2, shadowX:36, shadowY:12, glow:'#55e9ff', muzzleY:-28, muzzleR:31, rimY:25},
+    cryo:   {scale:1.03, x:0, y:0, shadowX:33, shadowY:11, glow:'#9cecff', muzzleY:-42, muzzleR:20, rimY:25},
+    plasma: {scale:1.10, x:0, y:-2, shadowX:37, shadowY:12, glow:'#ff9c38', muzzleY:-28, muzzleR:32, rimY:25},
+    arcane: {scale:1.06, x:0, y:0, shadowX:34, shadowY:11, glow:'#df6bff', muzzleY:-31, muzzleR:25, rimY:25}
+  };
+
+  window.__FUSION_RENDERER_DIAGNOSTICS = {
+    version: 2,
+    towerProfiles: Object.fromEntries(Object.entries(towerProfiles).map(([key, value]) => [key, {...value}]))
   };
 
   function assetKind(image) {
@@ -41,28 +46,58 @@
     ctx.save();
     ctx.shadowBlur = 0;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = .66;
-    ctx.fillStyle = 'rgba(0,0,0,.78)';
+    ctx.globalAlpha = .74;
+    ctx.fillStyle = 'rgba(0,0,0,.82)';
     ctx.beginPath();
-    originalEllipse.call(ctx, 0, 24, profile.shadowX, profile.shadowY, 0, 0, Math.PI * 2);
+    originalEllipse.call(ctx, 0, 27, profile.shadowX, profile.shadowY, 0, 0, Math.PI * 2);
     originalFill.call(ctx);
 
     ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = .10;
-    const glow = ctx.createRadialGradient(0, 20, 2, 0, 20, 39);
+    ctx.globalAlpha = .17;
+    const glow = ctx.createRadialGradient(0, 21, 3, 0, 21, 44);
     glow.addColorStop(0, profile.glow);
-    glow.addColorStop(.34, profile.glow + '55');
+    glow.addColorStop(.34, profile.glow + '6b');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
-    originalEllipse.call(ctx, 0, 20, 39, 18, 0, 0, Math.PI * 2);
+    originalEllipse.call(ctx, 0, 21, 43, 19, 0, 0, Math.PI * 2);
     originalFill.call(ctx);
 
-    ctx.globalAlpha = .22;
+    ctx.globalAlpha = .28;
     ctx.strokeStyle = profile.glow;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    originalEllipse.call(ctx, 0, 21, 30, 11, 0, 0, Math.PI * 2);
+    originalEllipse.call(ctx, 0, 22, 31, 11, 0, 0, Math.PI * 2);
+    originalStroke.call(ctx);
+    ctx.restore();
+  }
+
+  function drawTowerFrontRim(ctx, profile) {
+    ctx.save();
+    ctx.shadowBlur = 0;
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.globalAlpha = .50;
+    ctx.fillStyle = 'rgba(2,9,18,.82)';
+    ctx.beginPath();
+    originalEllipse.call(ctx, 0, profile.rimY, 31, 10, 0, 0, Math.PI);
+    ctx.lineTo(-31, profile.rimY);
+    ctx.closePath();
+    originalFill.call(ctx);
+
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = .34;
+    ctx.strokeStyle = profile.glow;
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    originalEllipse.call(ctx, 0, profile.rimY, 31, 10, 0, 0, Math.PI);
+    originalStroke.call(ctx);
+
+    ctx.globalAlpha = .15;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = .75;
+    ctx.beginPath();
+    originalEllipse.call(ctx, 0, profile.rimY - 1, 25, 7, 0, .08, Math.PI - .08);
     originalStroke.call(ctx);
     ctx.restore();
   }
@@ -84,19 +119,27 @@
       const nh = dh * profile.scale;
       dx += (dw - nw) / 2 + profile.x;
       dy += (dh - nh) / 2 + profile.y;
-      return originalDrawImage.call(this, image, dx, dy, nw, nh);
+      const result = originalDrawImage.call(this, image, dx, dy, nw, nh);
+      drawTowerFrontRim(this, profile);
+      return result;
     }
 
     if (kind === 'core' && dw > 80 && dh > 80) return;
 
     if (kind === 'enemy' && dw > 25 && dw < 130) {
       this.save();
-      this.shadowColor = 'rgba(0,0,0,.82)';
-      this.shadowBlur = 8;
-      this.shadowOffsetY = 6;
-      const nw = dw * .88;
-      const nh = dh * .88;
-      const result = originalDrawImage.call(this, image, dx + (dw - nw) / 2, dy + (dh - nh) / 2 + 3, nw, nh);
+      this.globalAlpha *= .55;
+      this.fillStyle = 'rgba(0,0,0,.76)';
+      this.beginPath();
+      originalEllipse.call(this, dx + dw / 2, dy + dh * .79, dw * .28, dh * .11, 0, 0, Math.PI * 2);
+      originalFill.call(this);
+      this.globalAlpha /= .55;
+      this.shadowColor = 'rgba(0,0,0,.78)';
+      this.shadowBlur = 7;
+      this.shadowOffsetY = 5;
+      const nw = dw * .94;
+      const nh = dh * .94;
+      const result = originalDrawImage.call(this, image, dx + (dw - nw) / 2, dy + (dh - nh) / 2 + 1, nw, nh);
       this.restore();
       return result;
     }
@@ -167,7 +210,7 @@
     if (this.canvas?.id === 'game' && String(this.fillStyle) === 'rgba(7, 20, 29, 0.22)') {
       if (document.body.classList.contains('combat-active')) return;
       this.save();
-      this.globalAlpha *= .09;
+      this.globalAlpha *= .07;
       const result = originalFill.apply(this, args);
       this.restore();
       return result;
@@ -183,7 +226,7 @@
     if (this.canvas?.id === 'game' && isEmptyNodeStroke(this.strokeStyle) && this.lineWidth <= 1.7) {
       if (document.body.classList.contains('combat-active')) return;
       this.save();
-      this.globalAlpha *= .13;
+      this.globalAlpha *= .09;
       const result = originalStroke.apply(this, args);
       this.restore();
       return result;
@@ -222,8 +265,11 @@
       for (const tower of game.state.towers || []) {
         if (tower.type !== 'rail') continue;
         const home = game.level.slots[tower.slot];
-        const d = Math.hypot(home.x - beam.x1, home.y - beam.y1);
-        if (d < best) { best = d; nearest = tower; }
+        const distance = Math.hypot(home.x - beam.x1, home.y - beam.y1);
+        if (distance < best) {
+          best = distance;
+          nearest = tower;
+        }
       }
       if (nearest) {
         const home = game.level.slots[nearest.slot];
