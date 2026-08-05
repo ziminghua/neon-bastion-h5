@@ -88,10 +88,22 @@
       display: inline !important;
       margin: 0 !important;
       color: #ffd364 !important;
-      font-size: 6px !important;
+      font-size: 7px !important;
       line-height: 1 !important;
     }
   `;
+
+  function compactCostLabel(reroll) {
+    const cost = reroll.querySelector('small');
+    if (!cost) return;
+    const normalize = () => {
+      const text = cost.textContent.trim();
+      if (text === 'FREE THIS WAVE') cost.textContent = 'FREE';
+      else if (/^\d+ CREDITS$/.test(text)) cost.textContent = text.replace(' CREDITS', ' CR');
+    };
+    normalize();
+    new MutationObserver(normalize).observe(cost, { childList: true, characterData: true, subtree: true });
+  }
 
   function install() {
     const next = document.getElementById('draftNext');
@@ -99,6 +111,7 @@
     if (!next || !reroll || !document.querySelector('.three-zone-draft-dock')) return false;
     if (!next.contains(reroll)) next.append(reroll);
     next.classList.add('reroll-strip-card');
+    compactCostLabel(reroll);
 
     if (!document.getElementById('rerollStripStyles')) {
       const style = document.createElement('style');
