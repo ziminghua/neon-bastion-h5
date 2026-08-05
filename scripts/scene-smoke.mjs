@@ -31,13 +31,18 @@ if(mapWaitError){
     mapSource:window.__RENDERED_MAP_SOURCE,
     mapError:window.__RENDERED_MAP_ERROR,
     hqParts:Array.isArray(window.__RENDERED_MAP_HQ_PARTS)?window.__RENDERED_MAP_HQ_PARTS.map(part=>part?.length||0):null,
+    part03:Array.isArray(window.__RENDERED_MAP_HQ_PARTS)?window.__RENDERED_MAP_HQ_PARTS[3]||'':'',
+    part23:Array.isArray(window.__RENDERED_MAP_HQ_PARTS)?window.__RENDERED_MAP_HQ_PARTS[23]||'':'',
     fallbackParts:Array.isArray(window.__RENDERED_MAP_CHUNKS)?window.__RENDERED_MAP_CHUNKS.map(part=>part?.length||0):null,
     scripts:[...document.scripts].map(script=>script.getAttribute('src')).filter(Boolean),
     assetFailures:window.__assetLoadFailures||[]
   }));
-  await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,diagnostics},null,2));
+  await fs.writeFile(`${out}/runtime-part-03.txt`,diagnostics.part03);
+  await fs.writeFile(`${out}/runtime-part-23.txt`,diagnostics.part23);
+  const reportDiagnostics={...diagnostics,part03:undefined,part23:undefined};
+  await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,diagnostics:reportDiagnostics},null,2));
   await browser.close();
-  console.error(JSON.stringify({errors,diagnostics},null,2));
+  console.error(JSON.stringify({errors,diagnostics:reportDiagnostics},null,2));
   process.exit(1);
 }
 
