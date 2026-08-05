@@ -6,9 +6,9 @@
       height: 96px !important;
       display: grid !important;
       grid-template-columns: 1fr !important;
-      grid-template-rows: 15px 52px 24px !important;
+      grid-template-rows: 14px 48px 24px !important;
       gap: 0 !important;
-      padding: 6px 9px 5px !important;
+      padding: 5px 9px !important;
     }
 
     .three-zone-draft-dock .draft-next.reroll-strip-card > span {
@@ -19,15 +19,15 @@
     .three-zone-draft-dock .draft-next.reroll-strip-card > div:not(.draft-reroll) {
       grid-column: 1 !important;
       grid-row: 2 !important;
-      height: 52px !important;
+      height: 48px !important;
       display: grid !important;
-      grid-template-columns: 52px minmax(0,1fr) !important;
+      grid-template-columns: 48px minmax(0,1fr) !important;
       gap: 8px !important;
     }
 
     .three-zone-draft-dock .draft-next.reroll-strip-card img {
-      width: 50px !important;
-      height: 50px !important;
+      width: 46px !important;
+      height: 46px !important;
     }
 
     .three-zone-draft-dock .draft-next.reroll-strip-card b {
