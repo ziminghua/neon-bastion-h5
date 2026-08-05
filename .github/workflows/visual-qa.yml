@@ -37,6 +37,9 @@ jobs:
       - name: Run visual and full-play QA
         run: node scripts/visual-qa.mjs
 
+      - name: Run random draft QA
+        run: node scripts/random-draft-qa.mjs
+
       - name: Upload screenshots and report
         if: always()
         uses: actions/upload-artifact@v4
