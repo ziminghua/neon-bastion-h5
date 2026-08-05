@@ -8,16 +8,18 @@
     {x:1360,y:585},{x:1460,y:520},{x:1515,y:485}
   ];
 
+  // Calibrated against the actual platform centers in the generated battlefield.
   const SLOTS = [
-    {x:490,y:208,zone:'north'},
-    {x:284,y:451,zone:'street'},
-    {x:356,y:679,zone:'street'},
-    {x:620,y:523,zone:'reactor'},
-    {x:955,y:137,zone:'north'},
-    {x:936,y:535,zone:'reactor'},
-    {x:1234,y:220,zone:'north'},
-    {x:1180,y:554,zone:'bridge'},
-    {x:1233,y:780,zone:'bridge'}
+    {x:490,y:198,zone:'north'},
+    {x:276,y:438,zone:'street'},
+    {x:351,y:661,zone:'street'},
+    {x:602,y:511,zone:'reactor'},
+    {x:935,y:139,zone:'north'},
+    {x:895,y:514,zone:'reactor'},
+    {x:1208,y:220,zone:'north'},
+    {x:1134,y:540,zone:'bridge'},
+    {x:1202,y:744,zone:'bridge'},
+    {x:1347,y:369,zone:'core'}
   ];
 
   function rebuildPathInfo(pathInfo, points) {
@@ -46,27 +48,29 @@
       game.level.path.splice(0, game.level.path.length, ...PATH.map(point => ({...point})));
       game.level.slots.splice(0, game.level.slots.length, ...SLOTS.map(slot => ({...slot})));
       game.level.landmarks.splice(0, game.level.landmarks.length,
-        {id:'breach',x:270,y:530,r:210},
+        {id:'breach',x:275,y:505,r:210},
         {id:'reactor',x:810,y:390,r:230},
-        {id:'bridge',x:1240,y:595,r:250}
+        {id:'bridge',x:1210,y:585,r:260}
       );
       rebuildPathInfo(game.pathInfo, game.level.path);
-      window.dispatchEvent(new CustomEvent('neon:rendered-map-ready'));
       window.__RENDERED_MAP_READY = true;
+      window.__TOWER_PLATFORM_CALIBRATION = SLOTS.map(slot => ({...slot}));
+      window.dispatchEvent(new CustomEvent('neon:rendered-map-ready'));
       delete window.__RENDERED_MAP_CHUNKS;
     };
     renderedMap.src = `data:image/webp;base64,${chunks.join('')}`;
 
     const canvas = document.getElementById('game');
-    if (canvas) canvas.style.filter = 'saturate(1.08) contrast(1.05) brightness(.98)';
+    if (canvas) canvas.style.filter = 'saturate(1.1) contrast(1.06) brightness(.99)';
 
     const style = document.createElement('style');
     style.textContent = `
-      .scanlines{opacity:.035!important}
+      .scanlines{opacity:.025!important}
       body:not(.combat-active) .mission-panel,
-      body:not(.combat-active) .inspector{background:linear-gradient(165deg,rgba(4,13,25,.82),rgba(2,7,15,.78))}
-      body.combat-active .mission-panel{opacity:.16!important}
-      body.combat-active .inspector:not(:hover){opacity:.2!important}
+      body:not(.combat-active) .inspector{background:linear-gradient(165deg,rgba(4,13,25,.78),rgba(2,7,15,.72))}
+      body.combat-active .mission-panel{opacity:.11!important}
+      body.combat-active .inspector:not(:hover){opacity:.14!important}
+      body.combat-active .bottom-deck:not(:hover){opacity:.72!important}
     `;
     document.head.appendChild(style);
     return true;
@@ -75,6 +79,6 @@
   let attempts = 0;
   const timer = setInterval(() => {
     attempts += 1;
-    if (applyIntegration() || attempts > 200) clearInterval(timer);
+    if (applyIntegration() || attempts > 240) clearInterval(timer);
   }, 25);
 })();
