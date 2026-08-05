@@ -1,8 +1,12 @@
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-core';
 import fs from 'node:fs/promises';
 
 await fs.mkdir('artifacts/visual-qa', { recursive: true });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
+  args: ['--no-sandbox', '--disable-dev-shm-usage']
+});
 const context = await browser.newContext({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1 });
 const page = await context.newPage();
 const errors = [];
@@ -24,11 +28,11 @@ await page.screenshot({ path: 'artifacts/visual-qa/02-build.png' });
 const stage = page.locator('#stage');
 const box = await stage.boundingBox();
 if (!box) throw new Error('Stage not visible');
-const toPage = (x, y) => ({ x: box.x + x / 1600 * box.width, y: box.y + y / 900 * box.height });
-await page.mouse.click(...Object.values(toPage(360, 390)));
+const clickStage = async (x, y) => page.mouse.click(box.x + x / 1600 * box.width, box.y + y / 900 * box.height);
+await clickStage(360, 390);
 await page.waitForTimeout(300);
 await page.locator('[data-type="cryo"]').click();
-await page.mouse.click(...Object.values(toPage(535, 350)));
+await clickStage(535, 350);
 await page.waitForTimeout(300);
 await page.screenshot({ path: 'artifacts/visual-qa/03-built.png' });
 await page.locator('#startWaveBtn').click();
@@ -44,8 +48,8 @@ const result = {
     scrollHeight: document.documentElement.scrollHeight
   }))
 };
-await fs.writeFile('artifacts/visual-qa/report.json', JSON.stringify(result, null, 2));
 if (!assetSummary?.includes('0 failed')) errors.push(`asset summary: ${assetSummary}`);
+await fs.writeFile('artifacts/visual-qa/report.json', JSON.stringify(result, null, 2));
 if (errors.length) {
   console.error(JSON.stringify(result, null, 2));
   process.exitCode = 1;
