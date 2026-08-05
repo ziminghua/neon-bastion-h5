@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#071425"/>
+      <stop offset="0.58" stop-color="#07111d"/>
+      <stop offset="1" stop-color="#02060c"/>
+    </linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#182533"/>
+      <stop offset="0.5" stop-color="#101923"/>
+      <stop offset="1" stop-color="#0a111a"/>
+    </linearGradient>
+    <linearGradient id="roadEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fd5075"/>
+      <stop offset="0.45" stop-color="#8157bd"/>
+      <stop offset="1" stop-color="#46cce3"/>
+    </linearGradient>
+    <radialGradient id="reactorGlow">
+      <stop offset="0" stop-color="#7ae8ff" stop-opacity="0.24"/>
+      <stop offset="0.45" stop-color="#436e93" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#02060c" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coreGlow">
+      <stop offset="0" stop-color="#cc6cff" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#03070e" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="floorGrid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" fill="none" stroke="#244255" stroke-opacity="0.12"/>
+      <path d="M14 0V56M28 0V56M42 0V56M0 14H56M0 28H56M0 42H56" fill="none" stroke="#244255" stroke-opacity="0.035"/>
+    </pattern>
+    <pattern id="roadPlates" width="70" height="38" patternUnits="userSpaceOnUse" patternTransform="rotate(-8)">
+      <rect width="70" height="38" fill="none"/>
+      <path d="M0 1H70M0 37H70" stroke="#83a8bd" stroke-opacity="0.1"/>
+      <path d="M14 0V38M56 0V38" stroke="#000" stroke-opacity="0.22"/>
+    </pattern>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <rect y="118" width="1600" height="662" fill="#07101a"/>
+  <rect y="118" width="1600" height="662" fill="url(#floorGrid)"/>
+
+  <!-- distant skyline -->
+  <g opacity="0.54">
+    <path d="M0 118V56h54V92h38V39h70v79h37V67h50v51h61V28h76v90h45V74h48v44h74V48h92v70h58V82h53v36h72V42h88v76h45V64h69v54h64V35h82v83h48V76h58v42h76V52h86v66h54V86h62v32z" fill="#030811"/>
+    <g fill="#2bc8ef" opacity="0.22">
+      <rect x="112" y="58" width="5" height="5"/><rect x="136" y="78" width="5" height="5"/><rect x="292" y="48" width="6" height="5"/>
+      <rect x="520" y="70" width="5" height="5"/><rect x="745" y="52" width="5" height="5"/><rect x="926" y="76" width="6" height="5"/>
+      <rect x="1176" y="56" width="5" height="5"/><rect x="1398" y="66" width="5" height="5"/>
+    </g>
+  </g>
+
+  <!-- city blocks -->
+  <g filter="url(#shadow)">
+    <g id="breach-district">
+      <path d="M50 165h270l32 32v134H50z" fill="#091521" stroke="#18374a" stroke-width="2"/>
+      <path d="M75 190h225v26H75z" fill="#0e2232"/>
+      <path d="M73 240h96v60H73zm114 0h136v60H187z" fill="#06101a" stroke="#183244"/>
+      <path d="M84 252h72M84 267h72M202 252h103M202 267h103" stroke="#2abbd4" stroke-opacity="0.18" stroke-width="4"/>
+      <path d="M85 320h230" stroke="#ff507a" stroke-opacity="0.34" stroke-width="4"/>
+
+      <path d="M55 655h290v94H55z" fill="#08131d" stroke="#183748" stroke-width="2"/>
+      <path d="M77 676h105v49H77zm124 0h116v49H201z" fill="#050c14" stroke="#143142"/>
+      <path d="M90 706h77M215 706h88" stroke="#ff5a7e" stroke-opacity="0.32" stroke-width="3"/>
+    </g>
+
+    <g id="reactor-district">
+      <path d="M365 142h205l24 24v107H365z" fill="#091522" stroke="#1c3a50" stroke-width="2"/>
+      <path d="M392 170h153v22H392z" fill="#0f2638"/>
+      <path d="M391 218h177" stroke="#7e61cf" stroke-opacity="0.34" stroke-width="5" stroke-dasharray="24 12"/>
+
+      <path d="M580 648h310v104H580z" fill="#08131e" stroke="#18394d" stroke-width="2"/>
+      <path d="M608 675h88v50h-88zm110 0h143v50H718z" fill="#050d16" stroke="#153448"/>
+      <path d="M621 708h62M733 708h112" stroke="#27cbe6" stroke-opacity="0.25" stroke-width="4"/>
+    </g>
+
+    <g id="core-district">
+      <path d="M1090 145h207l26 28v125h-233z" fill="#091520" stroke="#1a3a4d" stroke-width="2"/>
+      <path d="M1117 173h145v25h-145z" fill="#102536"/>
+      <path d="M1120 233h170" stroke="#23c5df" stroke-opacity="0.28" stroke-width="4" stroke-dasharray="18 11"/>
+
+      <path d="M1332 145h220v180h-220z" fill="#0a1320" stroke="#33203f" stroke-width="2"/>
+      <path d="M1358 174h168v27h-168z" fill="#17122a"/>
+      <path d="M1360 238h160" stroke="#ef5c93" stroke-opacity="0.28" stroke-width="4"/>
+
+      <path d="M1182 690h360v70h-360z" fill="#07111b" stroke="#163648" stroke-width="2"/>
+      <path d="M1210 714h302" stroke="#2bc4df" stroke-opacity="0.22" stroke-width="5" stroke-dasharray="30 18"/>
+    </g>
+  </g>
+
+  <!-- environmental connectors -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M318 270C418 276 464 290 526 332" stroke="#1d5d73" stroke-width="12" opacity="0.22"/>
+    <path d="M1045 213C1000 236 970 250 934 282" stroke="#6d388c" stroke-width="10" opacity="0.2"/>
+    <path d="M1068 660C1140 690 1235 682 1294 655" stroke="#1b6075" stroke-width="11" opacity="0.25"/>
+    <path d="M111 634V350M111 350h52" stroke="#234558" stroke-width="5"/>
+    <path d="M1484 650V365M1484 365h-55" stroke="#2b455e" stroke-width="5"/>
+  </g>
+
+  <!-- reactor plaza integrated into city -->
+  <g transform="translate(820 400)">
+    <circle r="218" fill="url(#reactorGlow)"/>
+    <circle r="178" fill="#07111c" stroke="#1d3f51" stroke-width="3"/>
+    <circle r="151" fill="none" stroke="#315e6f" stroke-opacity="0.45" stroke-width="2" stroke-dasharray="22 14"/>
+    <circle r="116" fill="#0b1722" stroke="#263e52" stroke-width="18"/>
+    <circle r="76" fill="#07101a" stroke="#28556a" stroke-width="3"/>
+    <circle r="44" fill="#0d2232" stroke="#54d0e8" stroke-opacity="0.55" stroke-width="3"/>
+    <path d="M-164-44h54M110-44h54M-164 44h54M110 44h54M-44-164v54M44-164v54M-44 110v54M44 110v54" stroke="#415a6a" stroke-width="10"/>
+    <path d="M-88-130l28 18M88-130l-28 18M-88 130l28-18M88 130l-28-18" stroke="#9b4bd0" stroke-opacity="0.34" stroke-width="6"/>
+  </g>
+
+  <!-- integrated road shadow and surface -->
+  <polyline points="70,590 300,590 430,530 500,445 610,380 690,295 840,270 980,325 1070,415 1045,515 950,590 1030,655 1230,650 1365,585 1460,520 1510,500"
+    fill="none" stroke="#00040a" stroke-opacity="0.72" stroke-width="78" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="70,590 300,590 430,530 500,445 610,380 690,295 840,270 980,325 1070,415 1045,515 950,590 1030,655 1230,650 1365,585 1460,520 1510,500"
+    fill="none" stroke="#263441" stroke-width="64" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="70,590 300,590 430,530 500,445 610,380 690,295 840,270 980,325 1070,415 1045,515 950,590 1030,655 1230,650 1365,585 1460,520 1510,500"
+    fill="none" stroke="url(#road)" stroke-width="54" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="70,590 300,590 430,530 500,445 610,380 690,295 840,270 980,325 1070,415 1045,515 950,590 1030,655 1230,650 1365,585 1460,520 1510,500"
+    fill="none" stroke="url(#roadPlates)" stroke-width="45" stroke-linejoin="round" stroke-linecap="round" opacity="0.52"/>
+  <polyline points="70,590 300,590 430,530 500,445 610,380 690,295 840,270 980,325 1070,415 1045,515 950,590 1030,655 1230,650 1365,585 1460,520 1510,500"
+    fill="none" stroke="url(#roadEdge)" stroke-opacity="0.42" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- road furniture -->
+  <g stroke="#7894a3" stroke-opacity="0.28" stroke-width="2">
+    <path d="M172 548v84M184 548v84M932 548l51 48M941 538l52 49M1260 612l24 54M1272 607l24 54"/>
+  </g>
+  <g fill="#6ed7e8" opacity="0.3">
+    <rect x="198" y="558" width="27" height="3"/><rect x="257" y="558" width="27" height="3"/>
+    <rect x="730" y="257" width="27" height="3"/><rect x="789" y="257" width="27" height="3"/>
+    <rect x="1142" y="638" width="27" height="3"/><rect x="1201" y="638" width="27" height="3"/>
+  </g>
+
+  <!-- tower foundations embedded in scene -->
+  <g fill="#0b1822" stroke="#315063" stroke-width="2" opacity="0.82">
+    <g transform="translate(250 485)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(355 675)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(500 320)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(615 520)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(760 395)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(900 185)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(900 505)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(1110 545)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(1245 720)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+    <g transform="translate(1340 430)"><circle r="31"/><circle r="22" fill="none" opacity="0.45"/></g>
+  </g>
+
+  <!-- breach and core staging platforms -->
+  <g>
+    <path d="M0 536h86v108H0z" fill="#170b16" stroke="#5e263e" stroke-width="3"/>
+    <path d="M8 553h62M8 571h62M8 589h62M8 607h62M8 625h62" stroke="#ff5a7b" stroke-opacity="0.48" stroke-width="5"/>
+    <path d="M1425 438l74-46 73 48v120l-73 44-74-45z" fill="#07111c" stroke="#315267" stroke-width="3"/>
+    <circle cx="1499" cy="499" r="80" fill="url(#coreGlow)"/>
+    <ellipse cx="1499" cy="538" rx="56" ry="18" fill="#071522" stroke="#48cee5" stroke-opacity="0.6" stroke-width="3"/>
+  </g>
+
+  <!-- atmospheric lighting -->
+  <path d="M0 744C390 700 626 760 890 720S1320 680 1600 725V900H0z" fill="#02050a" opacity="0.72"/>
+  <rect width="1600" height="900" fill="none" stroke="#0c2130" stroke-width="16" opacity="0.4"/>
+</svg>
