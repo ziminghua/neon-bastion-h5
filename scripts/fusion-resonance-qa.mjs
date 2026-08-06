@@ -137,16 +137,20 @@ await page.evaluate(()=>{
 await page.waitForTimeout(1800);
 const overload=await page.evaluate(()=>{
   const probe=window.__fusionEnemyProbe;
+  const fusionProjectiles=window.__NEON_TEST__.state.projectiles.filter(projectile=>projectile.__fusionGenerated);
   return {
     before:probe.before,
     after:[probe.target.hp,probe.secondaryA.hp,probe.secondaryB.hp],
     targetSlow:probe.target.slowFactor,
     secondaryDamage:[probe.secondaryA.maxHp-probe.secondaryA.hp,probe.secondaryB.maxHp-probe.secondaryB.hp],
     beams:window.__NEON_TEST__.state.beams.length,
-    projectiles:window.__NEON_TEST__.state.projectiles.length
+    projectiles:window.__NEON_TEST__.state.projectiles.length,
+    fusionProjectileCount:fusionProjectiles.length,
+    fusionNames:[...new Set(fusionProjectiles.map(projectile=>projectile.__fusionName).filter(Boolean))]
   };
 });
-if(!overload.secondaryDamage.some(value=>value>0)) errors.push(`plasma + rail did not create a chained combo attack: ${JSON.stringify(overload)}`);
+if(overload.fusionProjectileCount<1||!overload.fusionNames.includes('OVERLOAD BURST')) errors.push(`plasma + rail did not generate its chained fusion attack: ${JSON.stringify(overload)}`);
+if(overload.beams<1) errors.push(`plasma + rail did not render a chained fusion beam: ${JSON.stringify(overload)}`);
 if(!(overload.targetSlow<1)) errors.push(`plasma fusion effects did not apply control: ${JSON.stringify(overload)}`);
 await page.screenshot({path:`${out}/03-overload-chain-combat.png`});
 
