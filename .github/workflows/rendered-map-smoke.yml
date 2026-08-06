@@ -28,10 +28,8 @@ jobs:
           exit 1
       - name: Capture rendered map smoke
         run: node scripts/scene-smoke.mjs
-      - name: Validate combat range and resonance
-        run: node scripts/combat-balance-qa.mjs
-      - name: Validate real draft board resonance runtime
-        run: node scripts/resonance-board-runtime-qa.mjs
+      - name: Validate all-link ability fusion resonance
+        run: node scripts/fusion-resonance-qa.mjs
       - name: Run release five-wave QA
         run: node scripts/release-qa.mjs
       - name: Upload screenshots
@@ -41,7 +39,6 @@ jobs:
           name: rendered-map-release-qa
           path: |
             artifacts/scene-smoke
-            artifacts/combat-balance
-            artifacts/resonance-board-runtime
+            artifacts/fusion-resonance
             artifacts/release-qa
           if-no-files-found: error

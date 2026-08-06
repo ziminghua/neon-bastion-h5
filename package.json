@@ -4,6 +4,6 @@
   "private": true,
   "scripts": {
     "serve": "python3 -m http.server 8080",
-    "check": "node --check app.js && node --check fusion-renderer.js && node --check delivery-fusion-polish.js && node --check rail-vfx-polish.js && node --check random-draft.js && node --check compact-draft-ui.js && node --check reroll-polish.js && node --check rendered-map-integration.js && node --check combat-balance.js && node --check resonance-board-network.js"
+    "check": "node --check app.js && node --check fusion-renderer.js && node --check delivery-fusion-polish.js && node --check rail-vfx-polish.js && node --check random-draft.js && node --check compact-draft-ui.js && node --check reroll-polish.js && node --check rendered-map-integration.js && node --check combat-balance.js && node --check fusion-resonance-v5.js && node --check resonance-board-network.js"
   }
 }

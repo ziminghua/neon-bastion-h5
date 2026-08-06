@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='cross-type-board-v4-20260806';
+  const BUILD='fusion-network-v5-20260806';
   const WORLD={width:1600,height:900};
   const TYPE_COLORS={
     rail:'#55e9ff',
@@ -36,19 +36,19 @@
     };
   }
 
-  function drawEndpoint(point,color,now,phase){
+  function drawEndpoint(point,color,now,phase,density){
     const pulse=5.5+Math.sin(now*.004+phase)*1.2;
     context.save();
     context.globalCompositeOperation='screen';
     context.strokeStyle=color;
     context.shadowColor=color;
     context.shadowBlur=12;
-    context.globalAlpha=.72;
+    context.globalAlpha=.72*density;
     context.lineWidth=1.5;
     context.beginPath();
     context.arc(point.x,point.y,pulse,0,Math.PI*2);
     context.stroke();
-    context.globalAlpha=.24;
+    context.globalAlpha=.24*density;
     context.lineWidth=5;
     context.beginPath();
     context.arc(point.x,point.y,pulse+2,0,Math.PI*2);
@@ -56,11 +56,12 @@
     context.restore();
   }
 
-  function drawLink(link,now,index){
+  function drawLink(link,now,index,total){
     const from=towerPosition(link.fromType,link.fromSlot);
     const to=towerPosition(link.toType,link.toSlot);
     if(!from||!to) return;
 
+    const density=Math.max(.52,1-Math.max(0,total-4)*.035);
     const {start,end,normal}=trimmedEndpoints(from,to);
     const bend=Math.min(24,link.distance*.045)*Math.sin((link.fromSlot+link.toSlot+1)*1.37);
     const control={
@@ -78,7 +79,7 @@
     context.globalCompositeOperation='screen';
     context.lineCap='round';
 
-    context.globalAlpha=.24;
+    context.globalAlpha=.24*density;
     context.strokeStyle=gradient;
     context.shadowColor='#9feeff';
     context.shadowBlur=18;
@@ -88,7 +89,7 @@
     context.quadraticCurveTo(control.x,control.y,end.x,end.y);
     context.stroke();
 
-    context.globalAlpha=.82;
+    context.globalAlpha=.82*density;
     context.shadowBlur=7;
     context.lineWidth=2.25;
     context.setLineDash([10,8]);
@@ -100,22 +101,23 @@
     context.setLineDash([]);
     context.restore();
 
-    drawEndpoint(start,fromColor,now,index*.7);
-    drawEndpoint(end,toColor,now,index*.7+1.4);
+    drawEndpoint(start,fromColor,now,index*.7,density);
+    drawEndpoint(end,toColor,now,index*.7+1.4,density);
   }
 
   function render(now){
     context.clearRect(0,0,WORLD.width,WORLD.height);
     const diagnostics=window.__COMBAT_BALANCE_DIAGNOSTICS;
-    const links=diagnostics?.version>=3&&Array.isArray(diagnostics.links)?diagnostics.links:[];
-    links.forEach((link,index)=>drawLink(link,now,index));
+    const links=diagnostics?.version>=5&&Array.isArray(diagnostics.links)?diagnostics.links:[];
+    links.forEach((link,index)=>drawLink(link,now,index,links.length));
 
     window.__RESONANCE_BOARD_RUNTIME={
       build:BUILD,
       ready:true,
       combatVersion:diagnostics?.version||0,
       visibleLinkCount:links.length,
-      independentOfBuildSelection:true
+      independentOfBuildSelection:true,
+      allPairs:true
     };
     requestAnimationFrame(render);
   }
