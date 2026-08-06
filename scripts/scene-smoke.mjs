@@ -4,6 +4,19 @@ import crypto from 'node:crypto';
 
 const EXPECTED_MAP_LENGTH=86436;
 const EXPECTED_MAP_SHA='55aef6251587908cd4dedea4bbf5391fedd65b99dcf1449552b740117024ef5b';
+const EXPECTED_SLOTS=[
+  {x:490,y:198,zone:'north'},
+  {x:276,y:438,zone:'street'},
+  {x:351,y:661,zone:'street'},
+  {x:602,y:511,zone:'reactor'},
+  {x:935,y:139,zone:'north'},
+  {x:895,y:514,zone:'reactor'},
+  {x:1208,y:220,zone:'north'},
+  {x:1134,y:540,zone:'bridge'},
+  {x:1202,y:744,zone:'bridge'},
+  {x:1342,y:377,zone:'core'}
+];
+const EXPECTED_SLOT_COUNT=EXPECTED_SLOTS.length;
 const out='artifacts/scene-smoke';
 await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({
@@ -101,6 +114,7 @@ const result=await page.evaluate(()=>({
   fusionDiagnostics:window.__FUSION_RENDERER_DIAGNOSTICS,
   pathPoints:window.__NEON_TEST__.level.path.length,
   slots:window.__NEON_TEST__.level.slots.length,
+  slotCoordinates:window.__NEON_TEST__.level.slots.map(({x,y,zone})=>({x,y,zone})),
   towers:window.__NEON_TEST__.state.towers.length,
   enemies:window.__NEON_TEST__.state.enemies.length,
   assetFailures:window.__assetLoadFailures||[],
@@ -109,7 +123,10 @@ const result=await page.evaluate(()=>({
 
 const mapWidth=result.mapDiagnostics?.naturalWidth||0;
 const mapHeight=result.mapDiagnostics?.naturalHeight||0;
-if(!result.ready||!result.renderedMap||result.mapSource!=='delivery'||mapWidth!==1600||mapHeight!==900||result.pathPoints!==18||result.slots!==9||result.towers<4||result.enemies<4||result.assetFailures.length||result.overflow.some(value=>value>0)){
+if(JSON.stringify(result.slotCoordinates)!==JSON.stringify(EXPECTED_SLOTS)){
+  errors.push(`Placement calibration changed: ${JSON.stringify(result.slotCoordinates)}`);
+}
+if(!result.ready||!result.renderedMap||result.mapSource!=='delivery'||mapWidth!==1600||mapHeight!==900||result.pathPoints!==18||result.slots!==EXPECTED_SLOT_COUNT||result.towers<4||result.enemies<4||result.assetFailures.length||result.overflow.some(value=>value>0)){
   errors.push(JSON.stringify(result));
 }
 await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,result,deliveryLength:deliveryMap.length,deliverySha},null,2));

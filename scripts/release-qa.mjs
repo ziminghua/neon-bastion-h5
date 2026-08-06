@@ -3,6 +3,19 @@ import fs from 'node:fs/promises';
 
 const base = 'http://127.0.0.1:8080/';
 const out = 'artifacts/release-qa';
+const EXPECTED_SLOTS = [
+  { x: 490, y: 198, zone: 'north' },
+  { x: 276, y: 438, zone: 'street' },
+  { x: 351, y: 661, zone: 'street' },
+  { x: 602, y: 511, zone: 'reactor' },
+  { x: 935, y: 139, zone: 'north' },
+  { x: 895, y: 514, zone: 'reactor' },
+  { x: 1208, y: 220, zone: 'north' },
+  { x: 1134, y: 540, zone: 'bridge' },
+  { x: 1202, y: 744, zone: 'bridge' },
+  { x: 1342, y: 377, zone: 'core' }
+];
+const EXPECTED_SLOT_COUNT = EXPECTED_SLOTS.length;
 await fs.mkdir(out, { recursive: true });
 
 const browser = await chromium.launch({
@@ -45,7 +58,8 @@ const assetReport = await page.evaluate(() => {
     failures: window.__assetLoadFailures || [],
     assets: Object.fromEntries(entries),
     map: window.__RENDERED_MAP_DIAGNOSTICS,
-    source: window.__RENDERED_MAP_SOURCE
+    source: window.__RENDERED_MAP_SOURCE,
+    slots: window.__NEON_TEST__.level.slots.map(({ x, y, zone }) => ({ x, y, zone }))
   };
 });
 if (assetReport.failures.length) errors.push(`asset failures: ${assetReport.failures.join(', ')}`);
@@ -55,20 +69,43 @@ for (const [key, asset] of Object.entries(assetReport.assets)) {
 if (assetReport.source !== 'delivery' || assetReport.map?.naturalWidth !== 1600 || assetReport.map?.naturalHeight !== 900) {
   errors.push(`rendered map invalid: ${JSON.stringify(assetReport.map)}`);
 }
+if (JSON.stringify(assetReport.slots) !== JSON.stringify(EXPECTED_SLOTS)) {
+  errors.push(`platform calibration changed: ${JSON.stringify(assetReport.slots)}`);
+}
 await page.screenshot({ path: `${out}/01-release-built-1600x900.png` });
 
-// Drag the rail tower from the first authored platform to the ninth platform.
 const canvas = page.locator('#game');
 const canvasBox = await canvas.boundingBox();
-if (!canvasBox) throw new Error('Canvas unavailable for drag QA');
-const dragNodes = await page.evaluate(() => ({
-  from: window.__NEON_TEST__.level.slots[0],
-  to: window.__NEON_TEST__.level.slots[8]
-}));
+if (!canvasBox) throw new Error('Canvas unavailable for placement QA');
 const toViewport = ({ x, y }) => ({
   x: canvasBox.x + (x / 1600) * canvasBox.width,
   y: canvasBox.y + (y / 900) * canvasBox.height
 });
+
+// Verify the formerly missing far-right authored platform is a real pointer target.
+const farRightViewport = toViewport(EXPECTED_SLOTS[9]);
+await page.mouse.move(farRightViewport.x, farRightViewport.y);
+await page.waitForTimeout(160);
+const farRightHover = await page.evaluate(() => window.__NEON_TEST__.state.hoverSlot);
+if (farRightHover !== 9) errors.push(`far-right hover failed: ${farRightHover}`);
+await page.evaluate(() => {
+  const game = window.__NEON_TEST__;
+  game.state.credits = 5000;
+  game.buildTower('rail', 9);
+});
+await page.waitForTimeout(320);
+const farRightPlacement = await page.evaluate(() => ({
+  towerAtTarget: window.__NEON_TEST__.state.towers.some(tower => tower.slot === 9),
+  towerCount: window.__NEON_TEST__.state.towers.length
+}));
+await page.screenshot({ path: `${out}/01b-release-far-right-placement.png` });
+if (!farRightPlacement.towerAtTarget) errors.push(`far-right placement failed: ${JSON.stringify(farRightPlacement)}`);
+
+// Drag the rail tower from the first authored platform to the lower-right platform.
+const dragNodes = await page.evaluate(() => ({
+  from: window.__NEON_TEST__.level.slots[0],
+  to: window.__NEON_TEST__.level.slots[8]
+}));
 const dragFrom = toViewport(dragNodes.from);
 const dragTo = toViewport(dragNodes.to);
 await page.mouse.move(dragFrom.x, dragFrom.y);
@@ -139,12 +176,15 @@ const fullRun = await page.evaluate(() => ({
   title: document.getElementById('resultTitle').textContent,
   resultVisible: !document.getElementById('resultModal').classList.contains('hidden'),
   pathPoints: window.__NEON_TEST__.level.path.length,
-  slots: window.__NEON_TEST__.level.slots.length
+  slots: window.__NEON_TEST__.level.slots.length,
+  slotCoordinates: window.__NEON_TEST__.level.slots.map(({ x, y, zone }) => ({ x, y, zone }))
 }));
 if (fullRun.wave !== 5 || !fullRun.resultVisible || !fullRun.title.includes('SECURED')) {
   errors.push(`five-wave run failed: ${JSON.stringify(fullRun)}`);
 }
-if (fullRun.pathPoints !== 18 || fullRun.slots !== 9) errors.push(`authored geometry changed: ${JSON.stringify(fullRun)}`);
+if (fullRun.pathPoints !== 18 || fullRun.slots !== EXPECTED_SLOT_COUNT || JSON.stringify(fullRun.slotCoordinates) !== JSON.stringify(EXPECTED_SLOTS)) {
+  errors.push(`authored geometry changed: ${JSON.stringify(fullRun)}`);
+}
 
 await page.setViewportSize({ width: 1280, height: 720 });
 await openGame('?qa=built');
@@ -169,7 +209,7 @@ if (
   errors.push(`responsive layout failed: ${JSON.stringify(responsive)}`);
 }
 
-const report = { errors, assetReport, dragPreview, dragResult, fullRun, responsive };
+const report = { errors, assetReport, farRightHover, farRightPlacement, dragPreview, dragResult, fullRun, responsive };
 await fs.writeFile(`${out}/report.json`, JSON.stringify(report, null, 2));
 await browser.close();
 if (errors.length) {

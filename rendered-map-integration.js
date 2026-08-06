@@ -10,6 +10,8 @@
     {x:1360,y:585},{x:1460,y:520},{x:1515,y:485}
   ];
 
+  // Pixel-calibrated against the authored platform centers in the canonical map.
+  // Ten pads are available on the map while the run still enforces the 8-tower cap.
   const SLOTS=[
     {x:490,y:198,zone:'north'},
     {x:276,y:438,zone:'street'},
@@ -19,7 +21,8 @@
     {x:895,y:514,zone:'reactor'},
     {x:1208,y:220,zone:'north'},
     {x:1134,y:540,zone:'bridge'},
-    {x:1202,y:744,zone:'bridge'}
+    {x:1202,y:744,zone:'bridge'},
+    {x:1342,y:377,zone:'core'}
   ];
 
   function resolveMapSource(){
@@ -64,6 +67,132 @@
     return canvas;
   }
 
+  function polygonPath(context,radius,sides=8){
+    context.beginPath();
+    for(let index=0;index<sides;index+=1){
+      const angle=-Math.PI/8+index*Math.PI*2/sides;
+      const x=Math.cos(angle)*radius;
+      const y=Math.sin(angle)*radius;
+      if(index===0) context.moveTo(x,y);
+      else context.lineTo(x,y);
+    }
+    context.closePath();
+  }
+
+  function drawSegmentedOctagon(context,radius,color,alpha,lineWidth){
+    const points=[];
+    for(let index=0;index<8;index+=1){
+      const angle=-Math.PI/8+index*Math.PI/4;
+      points.push({x:Math.cos(angle)*radius,y:Math.sin(angle)*radius});
+    }
+    context.strokeStyle=color;
+    context.globalAlpha=alpha;
+    context.lineWidth=lineWidth;
+    context.lineCap='round';
+    for(let index=0;index<8;index+=1){
+      const a=points[index];
+      const b=points[(index+1)%8];
+      const start=.17;
+      const end=.43;
+      context.beginPath();
+      context.moveTo(a.x+(b.x-a.x)*start,a.y+(b.y-a.y)*start);
+      context.lineTo(a.x+(b.x-a.x)*end,a.y+(b.y-a.y)*end);
+      context.stroke();
+    }
+  }
+
+  function installPlacementOverlay(game){
+    if(document.getElementById('placement-node-overlay')) return;
+    const shell=document.getElementById('game-shell');
+    if(!shell) return;
+
+    const overlay=document.createElement('canvas');
+    overlay.id='placement-node-overlay';
+    overlay.width=DESIGN.width;
+    overlay.height=DESIGN.height;
+    overlay.setAttribute('aria-hidden','true');
+    Object.assign(overlay.style,{
+      position:'absolute',
+      inset:'0',
+      width:`${DESIGN.width}px`,
+      height:`${DESIGN.height}px`,
+      zIndex:'2',
+      pointerEvents:'none'
+    });
+    shell.appendChild(overlay);
+
+    const context=overlay.getContext('2d');
+    const towerAtSlot=(slotIndex)=>game.state.towers.find(tower=>tower.slot===slotIndex);
+
+    function drawNode(slot,slotIndex,now){
+      const state=game.state;
+      const tower=towerAtSlot(slotIndex);
+      const dragging=Boolean(state.drag?.moved&&state.drag.tower);
+      const dragSource=Boolean(tower&&dragging&&state.drag.tower===tower);
+      if(tower&&!dragSource) return;
+
+      const hovered=state.hoverSlot===slotIndex;
+      const targeted=dragging&&hovered&&!dragSource;
+      const revealed=Boolean(state.selectedBuild||dragging||dragSource||(!state.waveActive&&state.towers.length<2));
+      const idleAlpha=dragSource?.62:revealed?.78:.18;
+      const pulse=!dragSource&&(hovered||targeted)?1+Math.sin(now*.012)*.055:1;
+      const color=dragSource?'#cda15f':targeted?'#82f1b0':hovered?'#ffd98b':'#e8b86e';
+
+      context.save();
+      context.translate(slot.x,slot.y);
+      context.scale(pulse,pulse);
+
+      // Cover the old cyan node without flattening the metal platform beneath it.
+      const plateRadius=dragSource?38:34;
+      const plate=context.createRadialGradient(0,-2,2,0,0,plateRadius);
+      plate.addColorStop(0,'rgba(12,15,18,.97)');
+      plate.addColorStop(.68,'rgba(12,15,18,.86)');
+      plate.addColorStop(1,'rgba(12,15,18,.18)');
+      context.fillStyle=plate;
+      context.globalAlpha=dragSource?1:revealed||hovered||targeted?.94:.56;
+      polygonPath(context,dragSource?35:31,8);
+      context.fill();
+
+      context.shadowColor=color;
+      context.shadowBlur=dragSource?0:targeted?18:hovered?13:revealed?5:0;
+      drawSegmentedOctagon(context,targeted?29:27,color,targeted||hovered?1:idleAlpha,targeted?2.5:1.55);
+      context.shadowBlur=0;
+
+      context.globalAlpha=targeted||hovered?1:idleAlpha;
+      context.strokeStyle=color;
+      context.lineWidth=targeted?2.3:1.55;
+      context.lineCap='round';
+      context.beginPath();
+      context.moveTo(-6,0);context.lineTo(6,0);
+      context.moveTo(0,-6);context.lineTo(0,6);
+      context.stroke();
+
+      context.globalAlpha=dragSource?.24:revealed?.34:.12;
+      context.strokeStyle='rgba(255,244,220,.9)';
+      context.lineWidth=1;
+      polygonPath(context,18,8);
+      context.stroke();
+
+      if((hovered||targeted)&&!dragSource){
+        context.globalAlpha=1;
+        context.fillStyle=color;
+        context.font='800 9px ui-sans-serif,system-ui,sans-serif';
+        context.textAlign='center';
+        context.fillText(targeted?'DEPLOY':'PLACE',0,44);
+      }
+      context.restore();
+    }
+
+    function renderOverlay(now){
+      context.clearRect(0,0,DESIGN.width,DESIGN.height);
+      game.level.slots.forEach((slot,index)=>drawNode(slot,index,now));
+      requestAnimationFrame(renderOverlay);
+    }
+
+    requestAnimationFrame(renderOverlay);
+    window.__PLACEMENT_OVERLAY_READY=true;
+  }
+
   function installPresentationStyle(){
     if(document.getElementById('rendered-map-presentation')) return;
     const style=document.createElement('style');
@@ -98,6 +227,7 @@
         {id:'bridge',x:1210,y:585,r:260}
       );
       rebuildPathInfo(game.pathInfo,game.level.path);
+      installPlacementOverlay(game);
 
       window.__RENDERED_MAP_READY=true;
       window.__RENDERED_MAP_SOURCE=source.quality;
@@ -109,7 +239,8 @@
         canvasWidth:DESIGN.width,
         canvasHeight:DESIGN.height,
         pathPoints:PATH.length,
-        slots:SLOTS.length
+        slots:SLOTS.length,
+        placementOverlay:true
       };
       window.__TOWER_PLATFORM_CALIBRATION=SLOTS.map(slot=>({...slot}));
       window.dispatchEvent(new CustomEvent('neon:rendered-map-ready',{detail:window.__RENDERED_MAP_DIAGNOSTICS}));
