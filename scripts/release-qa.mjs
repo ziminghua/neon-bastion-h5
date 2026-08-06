@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 
 const base = 'http://127.0.0.1:8080/';
 const out = 'artifacts/release-qa';
+const EXPECTED_SLOT_COUNT = 10;
 await fs.mkdir(out, { recursive: true });
 
 const browser = await chromium.launch({
@@ -57,7 +58,7 @@ if (assetReport.source !== 'delivery' || assetReport.map?.naturalWidth !== 1600 
 }
 await page.screenshot({ path: `${out}/01-release-built-1600x900.png` });
 
-// Drag the rail tower from the first authored platform to the ninth platform.
+// Drag the rail tower from the first authored platform to the lower-right platform.
 const canvas = page.locator('#game');
 const canvasBox = await canvas.boundingBox();
 if (!canvasBox) throw new Error('Canvas unavailable for drag QA');
@@ -144,7 +145,7 @@ const fullRun = await page.evaluate(() => ({
 if (fullRun.wave !== 5 || !fullRun.resultVisible || !fullRun.title.includes('SECURED')) {
   errors.push(`five-wave run failed: ${JSON.stringify(fullRun)}`);
 }
-if (fullRun.pathPoints !== 18 || fullRun.slots !== 9) errors.push(`authored geometry changed: ${JSON.stringify(fullRun)}`);
+if (fullRun.pathPoints !== 18 || fullRun.slots !== EXPECTED_SLOT_COUNT) errors.push(`authored geometry changed: ${JSON.stringify(fullRun)}`);
 
 await page.setViewportSize({ width: 1280, height: 720 });
 await openGame('?qa=built');
