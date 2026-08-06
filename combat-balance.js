@@ -1,6 +1,5 @@
 (() => {
   'use strict';
-
   const WORLD={width:1600,height:900};
   const RANGE_BY_TYPE={rail:240,cryo:225,plasma:215,arcane:265};
   const RESONANCE_RADIUS_BY_TYPE={rail:340,cryo:360,plasma:350,arcane:420};
@@ -15,7 +14,6 @@
     plasma:{countId:'energyCount',label:'ENERGY RESONANCE'},
     arcane:{countId:'arcaneCount',label:'ARCANE RESONANCE'}
   };
-
   let game=null;
   let overlay=null;
   let context=null;
@@ -23,9 +21,7 @@
   let towerStacks=new Map();
   let guideState=null;
   let mergeOnlyInstalled=false;
-
   function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
-
   function pointSegmentDistance(point,a,b){
     const vx=b.x-a.x;
     const vy=b.y-a.y;
@@ -34,7 +30,6 @@
     const t=Math.max(0,Math.min(1,((point.x-a.x)*vx+(point.y-a.y)*vy)/lengthSquared));
     return distance(point,{x:a.x+vx*t,y:a.y+vy*t});
   }
-
   function nearestPathDistance(point,path){
     let best=Infinity;
     for(let index=0;index<path.length-1;index+=1){
@@ -42,13 +37,11 @@
     }
     return best;
   }
-
   function applyTowerRanges(){
     for(const [type,range] of Object.entries(RANGE_BY_TYPE)){
       if(game.towerTypes?.[type]) game.towerTypes[type].range=range;
     }
   }
-
   function towerPosition(tower,now=performance.now()){
     if(game.state.drag?.tower===tower&&game.state.drag.moved){
       return {x:game.state.drag.x,y:game.state.drag.y-18};
@@ -64,14 +57,12 @@
     const slot=game.level.slots[tower.slot];
     return {x:slot.x,y:slot.y};
   }
-
   function canResonate(left,right,leftPosition,rightPosition){
     if(left.type===right.type) return false;
     const radius=Math.min(RESONANCE_RADIUS_BY_TYPE[left.type]||0,RESONANCE_RADIUS_BY_TYPE[right.type]||0);
     const edgeDistance=distance(leftPosition,rightPosition);
     return {active:edgeDistance<=radius,distance:edgeDistance,radius};
   }
-
   function buildCrossTypeNetwork(towers,now){
     const nodes=towers.map(tower=>({tower,position:towerPosition(tower,now)}));
     const candidates=[];
@@ -82,7 +73,6 @@
       }
     }
     candidates.sort((left,right)=>left.distance-right.distance);
-
     const parent=nodes.map((_,index)=>index);
     const find=index=>{
       let cursor=index;
@@ -99,7 +89,6 @@
       parent[rootB]=rootA;
       return true;
     };
-
     const networkLinks=[];
     for(const edge of candidates){
       if(!union(edge.a,edge.b)) continue;
@@ -110,7 +99,6 @@
         radius:edge.radius
       });
     }
-
     const components=new Map();
     for(let index=0;index<nodes.length;index+=1){
       const root=find(index);
@@ -118,7 +106,6 @@
       list.push(nodes[index].tower);
       components.set(root,list);
     }
-
     const stacks=new Map();
     for(const component of components.values()){
       const uniqueTypes=new Set(component.map(tower=>tower.type));
@@ -126,10 +113,8 @@
       const stack=uniqueTypes.size-1;
       component.forEach(tower=>stacks.set(tower,stack));
     }
-
     return {links:networkLinks,stacks};
   }
-
   function ensureIsolatedTowerDef(tower){
     if(tower.__crossTypeBaseDef) return tower.__crossTypeBaseDef;
     const base={
@@ -145,7 +130,6 @@
     tower.def={...tower.def};
     return base;
   }
-
   function applyTowerBonuses(){
     for(const tower of game.state.towers){
       const base=ensureIsolatedTowerDef(tower);
@@ -160,7 +144,6 @@
       tower.def.slowDuration=base.slowDuration;
     }
   }
-
   function applyProjectileBonuses(){
     for(const projectile of game.state.projectiles||[]){
       if(projectile.__crossTypeResonanceChecked) continue;
@@ -178,7 +161,6 @@
       }
     }
   }
-
   function updateBadges(){
     for(const [type,badgeConfig] of Object.entries(BADGES)){
       const active=game.state.towers.some(tower=>tower.type===type&&(towerStacks.get(tower)||0)>0);
@@ -192,25 +174,19 @@
       badge?.setAttribute('title',active?`${badgeConfig.label} active in a mixed tower network`:'Overlap this tower with a different tower type');
     }
   }
-
   function updateResonanceNetwork(now=performance.now()){
     const network=buildCrossTypeNetwork(game.state.towers,now);
     links=network.links;
     towerStacks=network.stacks;
-
-    // Base combat code used these as global same-type counters. Cross-type bonuses are now
-    // applied per participating tower/projectile, so keep the legacy globals neutral.
     game.state.resonance.frost=0;
     game.state.resonance.energy=0;
     game.state.resonance.arcane=0;
-
     applyTowerBonuses();
     applyProjectileBonuses();
     updateBadges();
     guideState=resolveGuide(now);
     publishDiagnostics();
   }
-
   function quadraticPoint(start,control,end,t){
     const inverse=1-t;
     return {
@@ -218,7 +194,6 @@
       y:inverse*inverse*start.y+2*inverse*t*control.y+t*t*end.y
     };
   }
-
   function trimmedEndpoints(from,to,trim=34){
     const dx=to.x-from.x;
     const dy=to.y-from.y;
@@ -231,14 +206,12 @@
       normal:{x:-ny,y:nx}
     };
   }
-
   function linkColors(link){
     return {
       from:TYPE_META[link.from.type]?.color||link.from.color||'#fff',
       to:TYPE_META[link.to.type]?.color||link.to.color||'#fff'
     };
   }
-
   function drawLink(link,now,preview=false){
     const from=preview?link.from:towerPosition(link.from,now);
     const to=preview?link.to:towerPosition(link.to,now);
@@ -253,11 +226,9 @@
     gradient.addColorStop(0,colors.from);
     gradient.addColorStop(.5,'#ffffff');
     gradient.addColorStop(1,colors.to);
-
     context.save();
     context.globalCompositeOperation='screen';
     context.lineCap='round';
-
     context.globalAlpha=alpha*.28;
     context.strokeStyle=gradient;
     context.lineWidth=preview?6:9;
@@ -267,7 +238,6 @@
     context.moveTo(start.x,start.y);
     context.quadraticCurveTo(control.x,control.y,end.x,end.y);
     context.stroke();
-
     context.globalAlpha=alpha;
     context.strokeStyle=gradient;
     context.lineWidth=preview?1.5:2;
@@ -278,7 +248,6 @@
     context.quadraticCurveTo(control.x,control.y,end.x,end.y);
     context.stroke();
     context.setLineDash([]);
-
     if(!preview){
       const pulseT=(now*.00024+(fromSlot+toSlot)*.13)%1;
       const pulse=quadraticPoint(start,control,end,pulseT);
@@ -294,18 +263,15 @@
     }
     context.restore();
   }
-
   function resolveGuide(now){
     const drag=game.state.drag?.moved?game.state.drag:null;
     if(drag&&RESONANCE_RADIUS_BY_TYPE[drag.tower.type]){
       return {type:drag.tower.type,position:towerPosition(drag.tower,now),tower:drag.tower,mode:'drag'};
     }
-
     const selected=game.state.selectedTower;
     if(selected&&RESONANCE_RADIUS_BY_TYPE[selected.type]){
       return {type:selected.type,position:towerPosition(selected,now),tower:selected,mode:'selected'};
     }
-
     const type=game.state.selectedBuild;
     if(type&&RESONANCE_RADIUS_BY_TYPE[type]){
       if(game.state.hoverSlot>=0){
@@ -316,7 +282,6 @@
     }
     return null;
   }
-
   function drawRangeCircle(position,type,now,alpha=.34,stack=0){
     const radius=RESONANCE_RADIUS_BY_TYPE[type];
     const config=TYPE_META[type];
@@ -325,13 +290,11 @@
     context.globalCompositeOperation='screen';
     context.translate(position.x,position.y);
     context.scale(pulse,pulse);
-
     context.globalAlpha=alpha*.1;
     context.fillStyle=config.color;
     context.beginPath();
     context.arc(0,0,radius,0,Math.PI*2);
     context.fill();
-
     context.globalAlpha=alpha;
     context.strokeStyle=config.color;
     context.shadowColor=config.color;
@@ -343,7 +306,6 @@
     context.arc(0,0,radius,0,Math.PI*2);
     context.stroke();
     context.setLineDash([]);
-
     context.globalAlpha=Math.min(.78,alpha*1.6);
     context.fillStyle=config.color;
     context.font='800 11px sans-serif';
@@ -351,7 +313,6 @@
     context.fillText(stack?`RESONANCE STACK ×${stack}`:'RESONANCE RANGE',0,-radius+20);
     context.restore();
   }
-
   function previewCandidate(position,type,tower,now){
     const otherPosition=towerPosition(tower,now);
     const pseudo={type};
@@ -364,12 +325,10 @@
       radius:relation.radius
     };
   }
-
   function drawGuide(now){
     if(!guideState) return;
     const type=guideState.type;
     if(!RESONANCE_RADIUS_BY_TYPE[type]) return;
-
     if(guideState.position){
       const stack=guideState.tower?towerStacks.get(guideState.tower)||0:0;
       drawRangeCircle(guideState.position,type,now,guideState.mode==='placement'?.48:.34,stack);
@@ -383,21 +342,14 @@
       candidates.forEach(candidate=>drawLink(candidate,now,true));
       return;
     }
-
-    for(const tower of game.state.towers.filter(tower=>tower.type!==type)){
-      const position=towerPosition(tower,now);
-      const relation=canResonate({type},tower,position,position);
-      if(relation.radius) drawRangeCircle(position,tower.type,now,.13,towerStacks.get(tower)||0);
-    }
+    return;
   }
-
   function installMergeOnlyProgression(){
     if(mergeOnlyInstalled) return;
     const button=document.getElementById('upgradeBtn');
     const actions=document.getElementById('towerActions');
     if(!button||!actions) return;
     mergeOnlyInstalled=true;
-
     const blockUpgrade=event=>{
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -408,7 +360,6 @@
     button.hidden=true;
     button.tabIndex=-1;
     button.setAttribute('aria-hidden','true');
-
     let note=actions.querySelector('.merge-upgrade-note');
     if(!note){
       note=document.createElement('div');
@@ -417,7 +368,6 @@
       actions.prepend(note);
     }
   }
-
   function render(now){
     updateResonanceNetwork(now);
     installMergeOnlyProgression();
@@ -426,7 +376,6 @@
     drawGuide(now);
     requestAnimationFrame(render);
   }
-
   function installOverlay(){
     const shell=document.getElementById('game-shell');
     if(!shell) return false;
@@ -446,7 +395,6 @@
     context=overlay.getContext('2d');
     return Boolean(context);
   }
-
   function installStyle(){
     if(document.getElementById('combat-balance-style')) return;
     const style=document.createElement('style');
@@ -464,7 +412,6 @@
     `;
     document.head.appendChild(style);
   }
-
   function publishDiagnostics(){
     if(!game) return;
     const slots=game.level.slots;
@@ -486,7 +433,6 @@
       overlayReady:Boolean(overlay)
     };
   }
-
   function initialize(){
     game=window.__NEON_TEST__;
     if(!game?.state||!game?.towerTypes||!window.__RENDERED_MAP_READY) return false;
@@ -504,7 +450,6 @@
     requestAnimationFrame(render);
     return true;
   }
-
   let attempts=0;
   const timer=setInterval(()=>{
     attempts+=1;
