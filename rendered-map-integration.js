@@ -125,33 +125,36 @@
     const towerAtSlot=(slotIndex)=>game.state.towers.find(tower=>tower.slot===slotIndex);
 
     function drawNode(slot,slotIndex,now){
-      if(towerAtSlot(slotIndex)) return;
-
       const state=game.state;
+      const tower=towerAtSlot(slotIndex);
       const dragging=Boolean(state.drag?.moved&&state.drag.tower);
+      const dragSource=Boolean(tower&&dragging&&state.drag.tower===tower);
+      if(tower&&!dragSource) return;
+
       const hovered=state.hoverSlot===slotIndex;
-      const targeted=dragging&&hovered;
-      const revealed=Boolean(state.selectedBuild||dragging||(!state.waveActive&&state.towers.length<2));
-      const idleAlpha=revealed?.78:.18;
-      const pulse=hovered||targeted?1+Math.sin(now*.012)*.055:1;
-      const color=targeted?'#82f1b0':hovered?'#ffd98b':'#e8b86e';
+      const targeted=dragging&&hovered&&!dragSource;
+      const revealed=Boolean(state.selectedBuild||dragging||dragSource||(!state.waveActive&&state.towers.length<2));
+      const idleAlpha=dragSource?.62:revealed?.78:.18;
+      const pulse=!dragSource&&(hovered||targeted)?1+Math.sin(now*.012)*.055:1;
+      const color=dragSource?'#cda15f':targeted?'#82f1b0':hovered?'#ffd98b':'#e8b86e';
 
       context.save();
       context.translate(slot.x,slot.y);
       context.scale(pulse,pulse);
 
       // Cover the old cyan node without flattening the metal platform beneath it.
-      const plate=context.createRadialGradient(0,-2,2,0,0,34);
-      plate.addColorStop(0,'rgba(12,15,18,.94)');
-      plate.addColorStop(.68,'rgba(12,15,18,.82)');
-      plate.addColorStop(1,'rgba(12,15,18,.16)');
+      const plateRadius=dragSource?38:34;
+      const plate=context.createRadialGradient(0,-2,2,0,0,plateRadius);
+      plate.addColorStop(0,'rgba(12,15,18,.97)');
+      plate.addColorStop(.68,'rgba(12,15,18,.86)');
+      plate.addColorStop(1,'rgba(12,15,18,.18)');
       context.fillStyle=plate;
-      context.globalAlpha=revealed||hovered||targeted?.94:.56;
-      polygonPath(context,31,8);
+      context.globalAlpha=dragSource?1:revealed||hovered||targeted?.94:.56;
+      polygonPath(context,dragSource?35:31,8);
       context.fill();
 
       context.shadowColor=color;
-      context.shadowBlur=targeted?18:hovered?13:revealed?5:0;
+      context.shadowBlur=dragSource?0:targeted?18:hovered?13:revealed?5:0;
       drawSegmentedOctagon(context,targeted?29:27,color,targeted||hovered?1:idleAlpha,targeted?2.5:1.55);
       context.shadowBlur=0;
 
@@ -164,13 +167,13 @@
       context.moveTo(0,-6);context.lineTo(0,6);
       context.stroke();
 
-      context.globalAlpha=revealed?.34:.12;
+      context.globalAlpha=dragSource?.24:revealed?.34:.12;
       context.strokeStyle='rgba(255,244,220,.9)';
       context.lineWidth=1;
       polygonPath(context,18,8);
       context.stroke();
 
-      if(hovered||targeted){
+      if((hovered||targeted)&&!dragSource){
         context.globalAlpha=1;
         context.fillStyle=color;
         context.font='800 9px ui-sans-serif,system-ui,sans-serif';
