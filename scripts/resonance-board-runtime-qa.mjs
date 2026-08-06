@@ -82,6 +82,7 @@ if(secondType===firstType) errors.push(`random draft did not advance to a differ
 await clickSlot(3);
 await page.waitForFunction(()=>window.__NEON_TEST__.state.towers.length===2,null,{timeout:5000});
 await page.waitForFunction(()=>window.__RESONANCE_BOARD_RUNTIME?.visibleLinkCount===1,null,{timeout:5000});
+await page.mouse.move(1590,20);
 await page.waitForTimeout(350);
 
 const placedNetwork=await page.evaluate(()=>{
