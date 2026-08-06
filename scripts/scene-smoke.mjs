@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 
 const EXPECTED_MAP_LENGTH=86436;
 const EXPECTED_MAP_SHA='55aef6251587908cd4dedea4bbf5391fedd65b99dcf1449552b740117024ef5b';
+const EXPECTED_SLOT_COUNT=10;
 const out='artifacts/scene-smoke';
 await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({
@@ -109,7 +110,7 @@ const result=await page.evaluate(()=>({
 
 const mapWidth=result.mapDiagnostics?.naturalWidth||0;
 const mapHeight=result.mapDiagnostics?.naturalHeight||0;
-if(!result.ready||!result.renderedMap||result.mapSource!=='delivery'||mapWidth!==1600||mapHeight!==900||result.pathPoints!==18||result.slots!==9||result.towers<4||result.enemies<4||result.assetFailures.length||result.overflow.some(value=>value>0)){
+if(!result.ready||!result.renderedMap||result.mapSource!=='delivery'||mapWidth!==1600||mapHeight!==900||result.pathPoints!==18||result.slots!==EXPECTED_SLOT_COUNT||result.towers<4||result.enemies<4||result.assetFailures.length||result.overflow.some(value=>value>0)){
   errors.push(JSON.stringify(result));
 }
 await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,result,deliveryLength:deliveryMap.length,deliverySha},null,2));
