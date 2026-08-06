@@ -10,19 +10,19 @@
     {x:1360,y:585},{x:1460,y:520},{x:1515,y:485}
   ];
 
-  // Calibrated to the visible metal platforms in the canonical rendered map.
+  // Pixel-calibrated against the authored platform centers in the canonical map.
   // Ten pads are available on the map while the run still enforces the 8-tower cap.
   const SLOTS=[
     {x:490,y:198,zone:'north'},
-    {x:276,y:452,zone:'street'},
+    {x:276,y:438,zone:'street'},
     {x:351,y:661,zone:'street'},
-    {x:604,y:522,zone:'reactor'},
-    {x:932,y:152,zone:'north'},
-    {x:902,y:523,zone:'reactor'},
-    {x:1201,y:235,zone:'north'},
-    {x:1135,y:551,zone:'bridge'},
-    {x:1202,y:759,zone:'bridge'},
-    {x:1342,y:390,zone:'core'}
+    {x:602,y:511,zone:'reactor'},
+    {x:935,y:139,zone:'north'},
+    {x:895,y:514,zone:'reactor'},
+    {x:1208,y:220,zone:'north'},
+    {x:1134,y:540,zone:'bridge'},
+    {x:1202,y:744,zone:'bridge'},
+    {x:1342,y:377,zone:'core'}
   ];
 
   function resolveMapSource(){
