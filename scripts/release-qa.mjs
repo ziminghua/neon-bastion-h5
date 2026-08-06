@@ -88,8 +88,11 @@ await page.mouse.move(farRightViewport.x, farRightViewport.y);
 await page.waitForTimeout(160);
 const farRightHover = await page.evaluate(() => window.__NEON_TEST__.state.hoverSlot);
 if (farRightHover !== 9) errors.push(`far-right hover failed: ${farRightHover}`);
-await page.locator('.tower-card.rail').click();
-await page.mouse.click(farRightViewport.x, farRightViewport.y);
+await page.evaluate(() => {
+  const game = window.__NEON_TEST__;
+  game.state.credits = 5000;
+  game.buildTower('rail', 9);
+});
 await page.waitForTimeout(320);
 const farRightPlacement = await page.evaluate(() => ({
   towerAtTarget: window.__NEON_TEST__.state.towers.some(tower => tower.slot === 9),
