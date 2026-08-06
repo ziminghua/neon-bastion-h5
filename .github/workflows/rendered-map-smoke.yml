@@ -1,0 +1,41 @@
+name: Rendered Map Smoke
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: npm run check
+      - name: Install browser driver
+        run: npm install --no-save playwright-core
+      - name: Start static server
+        run: |
+          python3 -m http.server 8080 > /tmp/neon-server.log 2>&1 &
+          for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/neon-server.log
+          exit 1
+      - name: Capture rendered map smoke
+        run: node scripts/scene-smoke.mjs
+      - name: Run release five-wave QA
+        run: node scripts/release-qa.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-map-release-qa
+          path: |
+            artifacts/scene-smoke
+            artifacts/release-qa
+          if-no-files-found: error
