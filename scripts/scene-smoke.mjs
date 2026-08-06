@@ -4,19 +4,20 @@ import crypto from 'node:crypto';
 
 const EXPECTED_MAP_LENGTH=86436;
 const EXPECTED_MAP_SHA='55aef6251587908cd4dedea4bbf5391fedd65b99dcf1449552b740117024ef5b';
-const EXPECTED_SLOTS=[
-  {x:490,y:198,zone:'north'},
-  {x:276,y:438,zone:'street'},
-  {x:351,y:661,zone:'street'},
-  {x:602,y:511,zone:'reactor'},
-  {x:935,y:139,zone:'north'},
-  {x:895,y:514,zone:'reactor'},
-  {x:1208,y:220,zone:'north'},
-  {x:1134,y:540,zone:'bridge'},
-  {x:1202,y:744,zone:'bridge'},
-  {x:1342,y:377,zone:'core'}
+const EXPECTED_WORLD={width:1600,height:900};
+const EXPECTED_PLATFORMS=[
+  {id:'north-west',zone:'north',x:490,y:208,markerX:490,markerY:208,maskX:490,maskY:208},
+  {id:'street-west',zone:'street',x:276,y:448,markerX:276,markerY:448,maskX:276,maskY:448},
+  {id:'street-south',zone:'street',x:351,y:671,markerX:351,markerY:671,maskX:351,maskY:671},
+  {id:'reactor-west',zone:'reactor',x:602,y:521,markerX:602,markerY:521,maskX:602,maskY:521},
+  {id:'north-center',zone:'north',x:935,y:149,markerX:935,markerY:149,maskX:935,maskY:149},
+  {id:'reactor-east',zone:'reactor',x:895,y:524,markerX:895,markerY:524,maskX:895,maskY:524},
+  {id:'north-east',zone:'north',x:1208,y:230,markerX:1208,markerY:230,maskX:1208,maskY:230},
+  {id:'bridge-center',zone:'bridge',x:1134,y:550,markerX:1134,markerY:550,maskX:1134,maskY:550},
+  {id:'bridge-south',zone:'bridge',x:1202,y:754,markerX:1202,markerY:744,maskX:1202,maskY:754},
+  {id:'core-west',zone:'core',x:1342,y:387,markerX:1342,markerY:387,maskX:1342,maskY:387}
 ];
-const EXPECTED_SLOT_COUNT=EXPECTED_SLOTS.length;
+const EXPECTED_SLOT_COUNT=EXPECTED_PLATFORMS.length;
 const out='artifacts/scene-smoke';
 await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({
@@ -33,7 +34,7 @@ await page.waitForFunction(()=>window.__NEON_TEST__?.state?.ready,{timeout:20000
 
 let mapWaitError='';
 try{
-  await page.waitForFunction(()=>window.__RENDERED_MAP_READY&&window.__RENDERED_MAP_SOURCE==='delivery',{timeout:30000});
+  await page.waitForFunction(()=>window.__RENDERED_MAP_READY&&window.__RENDERED_MAP_SOURCE==='delivery'&&window.__PLACEMENT_OVERLAY_READY,{timeout:30000});
 }catch(error){
   mapWaitError=error.message;
   errors.push(mapWaitError);
@@ -49,6 +50,7 @@ if(mapWaitError){
   const diagnostics=await page.evaluate(()=>({
     ready:window.__NEON_TEST__?.state?.ready,
     renderedMap:window.__RENDERED_MAP_READY,
+    placementOverlay:window.__PLACEMENT_OVERLAY_READY,
     mapSource:window.__RENDERED_MAP_SOURCE,
     mapError:window.__RENDERED_MAP_ERROR,
     deliveryError:window.__RENDERED_MAP_DELIVERY_ERROR,
@@ -108,13 +110,15 @@ await page.screenshot({path:`${out}/rendered-map-combat-1280x720.png`});
 const result=await page.evaluate(()=>({
   ready:window.__NEON_TEST__.state.ready,
   renderedMap:window.__RENDERED_MAP_READY===true,
+  placementOverlay:window.__PLACEMENT_OVERLAY_READY===true,
   mapSource:window.__RENDERED_MAP_SOURCE,
   mapDiagnostics:window.__RENDERED_MAP_DIAGNOSTICS,
   deliveryDiagnostics:window.__RENDERED_MAP_DELIVERY_DIAGNOSTICS,
   fusionDiagnostics:window.__FUSION_RENDERER_DIAGNOSTICS,
+  world:window.__PLACEMENT_WORLD,
   pathPoints:window.__NEON_TEST__.level.path.length,
   slots:window.__NEON_TEST__.level.slots.length,
-  slotCoordinates:window.__NEON_TEST__.level.slots.map(({x,y,zone})=>({x,y,zone})),
+  platformModel:window.__NEON_TEST__.level.slots.map(({id,zone,x,y,markerX,markerY,maskX,maskY})=>({id,zone,x,y,markerX,markerY,maskX,maskY})),
   towers:window.__NEON_TEST__.state.towers.length,
   enemies:window.__NEON_TEST__.state.enemies.length,
   assetFailures:window.__assetLoadFailures||[],
@@ -123,10 +127,13 @@ const result=await page.evaluate(()=>({
 
 const mapWidth=result.mapDiagnostics?.naturalWidth||0;
 const mapHeight=result.mapDiagnostics?.naturalHeight||0;
-if(JSON.stringify(result.slotCoordinates)!==JSON.stringify(EXPECTED_SLOTS)){
-  errors.push(`Placement calibration changed: ${JSON.stringify(result.slotCoordinates)}`);
+if(JSON.stringify(result.platformModel)!==JSON.stringify(EXPECTED_PLATFORMS)){
+  errors.push(`Placement anchor model changed: ${JSON.stringify(result.platformModel)}`);
 }
-if(!result.ready||!result.renderedMap||result.mapSource!=='delivery'||mapWidth!==1600||mapHeight!==900||result.pathPoints!==18||result.slots!==EXPECTED_SLOT_COUNT||result.towers<4||result.enemies<4||result.assetFailures.length||result.overflow.some(value=>value>0)){
+if(JSON.stringify(result.world)!==JSON.stringify(EXPECTED_WORLD)){
+  errors.push(`Logical world changed: ${JSON.stringify(result.world)}`);
+}
+if(!result.ready||!result.renderedMap||!result.placementOverlay||result.mapSource!=='delivery'||result.mapDiagnostics?.anchorModel!=='game-marker-mask-v1'||mapWidth!==1600||mapHeight!==900||result.pathPoints!==18||result.slots!==EXPECTED_SLOT_COUNT||result.towers<4||result.enemies<4||result.assetFailures.length||result.overflow.some(value=>value>0)){
   errors.push(JSON.stringify(result));
 }
 await fs.writeFile(`${out}/report.json`,JSON.stringify({errors,result,deliveryLength:deliveryMap.length,deliverySha},null,2));
