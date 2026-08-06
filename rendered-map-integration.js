@@ -1,7 +1,9 @@
 (() => {
   'use strict';
 
-  const DESIGN={width:1600,height:900};
+  // The battlefield is authored once in a fixed 1600×900 logical coordinate system.
+  // Every viewport scales the complete game shell uniformly; platform data never changes per resolution.
+  const WORLD={width:1600,height:900};
   const DELIVERY_LENGTH=86436;
   const PATH=[
     {x:40,y:570},{x:190,y:570},{x:310,y:535},{x:420,y:455},{x:500,y:360},
@@ -10,20 +12,36 @@
     {x:1360,y:585},{x:1460,y:520},{x:1515,y:485}
   ];
 
-  // Pixel-calibrated against the authored platform centers in the canonical map.
-  // Ten pads are available on the map while the run still enforces the 8-tower cap.
-  const SLOTS=[
-    {x:490,y:198,zone:'north'},
-    {x:276,y:438,zone:'street'},
-    {x:351,y:661,zone:'street'},
-    {x:602,y:511,zone:'reactor'},
-    {x:935,y:139,zone:'north'},
-    {x:895,y:514,zone:'reactor'},
-    {x:1208,y:220,zone:'north'},
-    {x:1134,y:540,zone:'bridge'},
-    {x:1202,y:744,zone:'bridge'},
-    {x:1342,y:377,zone:'core'}
+  // anchor: gameplay hit-testing, tower placement, ranges and projectiles.
+  // marker: visual placement prompt. It may differ when UI occlusion requires a small visual lift.
+  // mask: covers the legacy canvas slot rendering at the gameplay anchor.
+  // The authored platforms have perspective depth; their perceived centers sit about 10 logical pixels
+  // below the old debug anchors. Keeping these roles explicit prevents future visual tweaks from
+  // silently changing combat geometry.
+  const PLATFORM_MODEL=[
+    {id:'north-west',zone:'north',anchor:{x:490,y:208},marker:{x:490,y:208},mask:{x:490,y:208}},
+    {id:'street-west',zone:'street',anchor:{x:276,y:448},marker:{x:276,y:448},mask:{x:276,y:448}},
+    {id:'street-south',zone:'street',anchor:{x:351,y:671},marker:{x:351,y:671},mask:{x:351,y:671}},
+    {id:'reactor-west',zone:'reactor',anchor:{x:602,y:521},marker:{x:602,y:521},mask:{x:602,y:521}},
+    {id:'north-center',zone:'north',anchor:{x:935,y:149},marker:{x:935,y:149},mask:{x:935,y:149}},
+    {id:'reactor-east',zone:'reactor',anchor:{x:895,y:524},marker:{x:895,y:524},mask:{x:895,y:524}},
+    {id:'north-east',zone:'north',anchor:{x:1208,y:230},marker:{x:1208,y:230},mask:{x:1208,y:230}},
+    {id:'bridge-center',zone:'bridge',anchor:{x:1134,y:550},marker:{x:1134,y:550},mask:{x:1134,y:550}},
+    // The platform center is y=754, but its prompt is lifted 10px so the bottom command deck never clips it.
+    {id:'bridge-south',zone:'bridge',anchor:{x:1202,y:754},marker:{x:1202,y:744},mask:{x:1202,y:754}},
+    {id:'core-west',zone:'core',anchor:{x:1342,y:387},marker:{x:1342,y:387},mask:{x:1342,y:387}}
   ];
+
+  const SLOTS=PLATFORM_MODEL.map(platform=>({
+    id:platform.id,
+    zone:platform.zone,
+    x:platform.anchor.x,
+    y:platform.anchor.y,
+    markerX:platform.marker.x,
+    markerY:platform.marker.y,
+    maskX:platform.mask.x,
+    maskY:platform.mask.y
+  }));
 
   function resolveMapSource(){
     const delivery=window.__RENDERED_MAP_DELIVERY;
@@ -49,13 +67,13 @@
 
   function prepareMap(image){
     const canvas=document.createElement('canvas');
-    canvas.width=DESIGN.width;
-    canvas.height=DESIGN.height;
+    canvas.width=WORLD.width;
+    canvas.height=WORLD.height;
     const context=canvas.getContext('2d',{alpha:false});
     context.imageSmoothingEnabled=true;
     context.imageSmoothingQuality='high';
     context.filter='saturate(1.08) contrast(1.075) brightness(1.018)';
-    context.drawImage(image,0,0,DESIGN.width,DESIGN.height);
+    context.drawImage(image,0,0,WORLD.width,WORLD.height);
     context.filter='none';
 
     const focus=context.createRadialGradient(815,430,180,815,430,970);
@@ -63,7 +81,7 @@
     focus.addColorStop(.58,'rgba(0,0,0,0)');
     focus.addColorStop(1,'rgba(0,4,12,0.16)');
     context.fillStyle=focus;
-    context.fillRect(0,0,DESIGN.width,DESIGN.height);
+    context.fillRect(0,0,WORLD.width,WORLD.height);
     return canvas;
   }
 
@@ -108,49 +126,58 @@
 
     const overlay=document.createElement('canvas');
     overlay.id='placement-node-overlay';
-    overlay.width=DESIGN.width;
-    overlay.height=DESIGN.height;
+    overlay.width=WORLD.width;
+    overlay.height=WORLD.height;
     overlay.setAttribute('aria-hidden','true');
     Object.assign(overlay.style,{
       position:'absolute',
       inset:'0',
-      width:`${DESIGN.width}px`,
-      height:`${DESIGN.height}px`,
+      width:`${WORLD.width}px`,
+      height:`${WORLD.height}px`,
       zIndex:'2',
-      pointerEvents:'none'
+      pointerEvents:'none',
+      transformOrigin:'top left'
     });
     shell.appendChild(overlay);
 
     const context=overlay.getContext('2d');
     const towerAtSlot=(slotIndex)=>game.state.towers.find(tower=>tower.slot===slotIndex);
 
-    function drawNode(slot,slotIndex,now){
-      const state=game.state;
-      const tower=towerAtSlot(slotIndex);
-      const dragging=Boolean(state.drag?.moved&&state.drag.tower);
-      const dragSource=Boolean(tower&&dragging&&state.drag.tower===tower);
-      if(tower&&!dragSource) return;
+    function drawLegacyMask(slot,dragSource){
+      const x=slot.maskX??slot.x;
+      const y=slot.maskY??slot.y;
+      const radius=dragSource?39:36;
+      context.save();
+      context.translate(x,y);
+      const plate=context.createRadialGradient(0,-2,2,0,0,radius);
+      plate.addColorStop(0,'rgba(12,15,18,.97)');
+      plate.addColorStop(.68,'rgba(12,15,18,.86)');
+      plate.addColorStop(1,'rgba(12,15,18,.08)');
+      context.fillStyle=plate;
+      context.globalAlpha=dragSource?1:.96;
+      polygonPath(context,dragSource?36:33,8);
+      context.fill();
+      context.restore();
+    }
 
-      const hovered=state.hoverSlot===slotIndex;
-      const targeted=dragging&&hovered&&!dragSource;
-      const revealed=Boolean(state.selectedBuild||dragging||dragSource||(!state.waveActive&&state.towers.length<2));
+    function drawMarker(slot,{dragSource,targeted,hovered,revealed,now}){
+      const x=slot.markerX??slot.x;
+      const y=slot.markerY??slot.y;
       const idleAlpha=dragSource?.62:revealed?.78:.18;
       const pulse=!dragSource&&(hovered||targeted)?1+Math.sin(now*.012)*.055:1;
       const color=dragSource?'#cda15f':targeted?'#82f1b0':hovered?'#ffd98b':'#e8b86e';
 
       context.save();
-      context.translate(slot.x,slot.y);
+      context.translate(x,y);
       context.scale(pulse,pulse);
 
-      // Cover the old cyan node without flattening the metal platform beneath it.
-      const plateRadius=dragSource?38:34;
-      const plate=context.createRadialGradient(0,-2,2,0,0,plateRadius);
-      plate.addColorStop(0,'rgba(12,15,18,.97)');
-      plate.addColorStop(.68,'rgba(12,15,18,.86)');
-      plate.addColorStop(1,'rgba(12,15,18,.18)');
-      context.fillStyle=plate;
-      context.globalAlpha=dragSource?1:revealed||hovered||targeted?.94:.56;
-      polygonPath(context,dragSource?35:31,8);
+      const markerPlate=context.createRadialGradient(0,-2,2,0,0,32);
+      markerPlate.addColorStop(0,'rgba(12,15,18,.82)');
+      markerPlate.addColorStop(.72,'rgba(12,15,18,.56)');
+      markerPlate.addColorStop(1,'rgba(12,15,18,0)');
+      context.fillStyle=markerPlate;
+      context.globalAlpha=dragSource?1:revealed||hovered||targeted?.86:.42;
+      polygonPath(context,30,8);
       context.fill();
 
       context.shadowColor=color;
@@ -183,8 +210,23 @@
       context.restore();
     }
 
+    function drawNode(slot,slotIndex,now){
+      const state=game.state;
+      const tower=towerAtSlot(slotIndex);
+      const dragging=Boolean(state.drag?.moved&&state.drag.tower);
+      const dragSource=Boolean(tower&&dragging&&state.drag.tower===tower);
+      if(tower&&!dragSource) return;
+
+      const hovered=state.hoverSlot===slotIndex;
+      const targeted=dragging&&hovered&&!dragSource;
+      const revealed=Boolean(state.selectedBuild||dragging||dragSource||(!state.waveActive&&state.towers.length<2));
+
+      drawLegacyMask(slot,dragSource);
+      drawMarker(slot,{dragSource,targeted,hovered,revealed,now});
+    }
+
     function renderOverlay(now){
-      context.clearRect(0,0,DESIGN.width,DESIGN.height);
+      context.clearRect(0,0,WORLD.width,WORLD.height);
       game.level.slots.forEach((slot,index)=>drawNode(slot,index,now));
       requestAnimationFrame(renderOverlay);
     }
@@ -236,13 +278,17 @@
         base64Length:source.base64.length,
         naturalWidth:renderedMap.naturalWidth,
         naturalHeight:renderedMap.naturalHeight,
-        canvasWidth:DESIGN.width,
-        canvasHeight:DESIGN.height,
+        worldWidth:WORLD.width,
+        worldHeight:WORLD.height,
+        canvasWidth:WORLD.width,
+        canvasHeight:WORLD.height,
         pathPoints:PATH.length,
         slots:SLOTS.length,
-        placementOverlay:true
+        placementOverlay:true,
+        anchorModel:'game-marker-mask-v1'
       };
       window.__TOWER_PLATFORM_CALIBRATION=SLOTS.map(slot=>({...slot}));
+      window.__PLACEMENT_WORLD={...WORLD};
       window.dispatchEvent(new CustomEvent('neon:rendered-map-ready',{detail:window.__RENDERED_MAP_DIAGNOSTICS}));
       delete window.__RENDERED_MAP_DELIVERY_PARTS;
       delete window.__RENDERED_MAP_DELIVERY_TAIL;
