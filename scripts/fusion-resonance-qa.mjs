@@ -60,7 +60,21 @@ const network=await page.evaluate(()=>{
     diagnostics,
     board:{...window.__RESONANCE_BOARD_RUNTIME},
     alphaPixels,
-    towers:window.__NEON_TEST__.state.towers.map(tower=>({type:tower.type,slot:tower.slot,damage:tower.def.damage,interval:tower.def.interval,profile:tower.__fusionProfile}))
+    towers:window.__NEON_TEST__.state.towers.map(tower=>{
+      const profile=tower.__fusionProfile||{};
+      return {
+        type:tower.type,
+        slot:tower.slot,
+        damage:tower.def.damage,
+        interval:tower.def.interval,
+        profile:{
+          linkCount:profile.linkCount||0,
+          counts:{...(profile.counts||{})},
+          diversity:profile.diversity||1,
+          combos:(profile.combos||[]).map(combo=>({type:combo.type,count:combo.count,key:combo.key,name:combo.name}))
+        }
+      };
+    })
   };
 });
 if(network.diagnostics.links.length!==4) errors.push(`expected four all-pair links, got ${JSON.stringify(network.diagnostics.links)}`);
