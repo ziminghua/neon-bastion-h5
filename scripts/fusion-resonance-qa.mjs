@@ -38,6 +38,9 @@ for(const source of [loaded.fusionScript,loaded.combatScript,loaded.boardScript]
 }
 if(loaded.diagnostics.version!==5) errors.push(`fusion diagnostics version mismatch: ${loaded.diagnostics.version}`);
 if(!loaded.diagnostics.fusionChannels?.projectiles||!loaded.diagnostics.fusionChannels?.beams) errors.push(`fusion channels missing: ${JSON.stringify(loaded.diagnostics.fusionChannels)}`);
+for(const expected of ['SUPERCONDUCTOR','OVERLOAD BURST','PHASE CONDUIT','THERMAL SHOCK','VOID FLAME','STASIS WEB']){
+  if(!Object.values(loaded.runtime.combos||{}).includes(expected)) errors.push(`fusion ability is not registered: ${expected}`);
+}
 
 await page.evaluate(()=>{
   const game=window.__NEON_TEST__;
@@ -87,8 +90,8 @@ for(const tower of network.towers){
   if(Math.abs(tower.interval-EXPECTED_INTERVAL[tower.type])>.001) errors.push(`${tower.type} received generic resonance fire-rate boost: ${tower.interval}`);
 }
 const comboNames=new Set(network.diagnostics.links.map(link=>link.comboName));
-for(const expected of ['OVERLOAD BURST','THERMAL SHOCK','PHASE CONDUIT','SUPERCONDUCTOR']){
-  if(!comboNames.has(expected)) errors.push(`missing fusion combo ${expected}: ${JSON.stringify([...comboNames])}`);
+for(const expected of ['OVERLOAD BURST','THERMAL SHOCK','VOID FLAME','SUPERCONDUCTOR']){
+  if(!comboNames.has(expected)) errors.push(`missing in-range fusion combo ${expected}: ${JSON.stringify([...comboNames])}`);
 }
 await page.screenshot({path:`${out}/01-all-valid-links-idle.png`});
 
