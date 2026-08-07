@@ -127,6 +127,14 @@ await page.waitForFunction(()=>!window.__NEON_TEST__.state.waveActive||window.__
 const earlyRun=await page.evaluate(()=>({hp:window.__NEON_TEST__.state.hp,kills:window.__NEON_TEST__.state.kills,wave:window.__NEON_TEST__.state.wave}));
 if(earlyRun.hp<=0) errors.push(`wave 1 became unfair for a basic two-tower opening: ${JSON.stringify(earlyRun)}`);
 
+// Let the delayed post-wave protocol UI complete before resetting the game. Otherwise it can pause the next benchmark.
+await page.waitForTimeout(650);
+const protocolVisible=await page.evaluate(()=>!document.getElementById('protocolModal').classList.contains('hidden'));
+if(protocolVisible){
+  await page.locator('.protocol-choice').first().click();
+  await page.waitForFunction(()=>!window.__NEON_TEST__.state.paused,null,{timeout:10000});
+}
+
 // Late-game ceiling: a full mixed level-1 board without artificial damage multipliers must still be able to clear wave 5.
 await page.evaluate(()=>{
   const game=window.__NEON_TEST__;
