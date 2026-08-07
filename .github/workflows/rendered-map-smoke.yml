@@ -30,6 +30,8 @@ jobs:
         run: node scripts/scene-smoke.mjs
       - name: Validate real drag all-partner resonance
         run: node scripts/resonance-v6-qa.mjs
+      - name: Validate persistent tower build selection
+        run: node scripts/build-selection-qa.mjs
       - name: Run release five-wave QA
         run: node scripts/release-qa.mjs
       - name: Upload screenshots
@@ -40,5 +42,6 @@ jobs:
           path: |
             artifacts/scene-smoke
             artifacts/resonance-v6
+            artifacts/build-selection
             artifacts/release-qa
           if-no-files-found: error
