@@ -82,7 +82,7 @@ if(Math.abs(wave4Shield.maxHp-282.31736)>.05||Math.abs(wave4Shield.maxShield-125
 if(wave5Runner.maxHp<70.5||wave5Runner.maxHp>71.5||wave5Runner.speed<170||wave5Runner.speed>171.5) errors.push(`wave 5 runner outside band: ${JSON.stringify(wave5Runner)}`);
 if(wave5Boss.maxHp<2680||wave5Boss.maxHp>2700||wave5Boss.speed<48||wave5Boss.speed>48.5||wave5Boss.controlFloor<.879) errors.push(`wave 5 boss outside band: ${JSON.stringify(wave5Boss)}`);
 
-// Verify late-wave control resistance actually prevents a stasis effect from pinning a boss at 56% movement speed.
+// Verify late-wave control resistance prevents Stasis Web from pinning a boss at 56% movement speed.
 await page.evaluate(()=>{
   const enemy=window.__NEON_TEST__.state.enemies[0];
   enemy.slow=2;
@@ -95,7 +95,7 @@ const controlProbe=await page.evaluate(()=>{
 });
 if(controlProbe.slowFactor<.879) errors.push(`boss control resistance not enforced: ${JSON.stringify(controlProbe)}`);
 
-// A cheap two-tower opening should now leak a few enemies, but must not lose immediately.
+// A cheap two-tower opening should leak a few enemies, but must not lose immediately.
 await page.evaluate(()=>{
   const game=window.__NEON_TEST__;
   game.resetGame();
@@ -112,11 +112,22 @@ const earlyRun=await page.evaluate(()=>({hp:window.__NEON_TEST__.state.hp,kills:
 if(earlyRun.hp<14) errors.push(`wave 1 opening is too punishing: ${JSON.stringify(earlyRun)}`);
 if(earlyRun.kills>=9) errors.push(`wave 1 opening is still trivial: ${JSON.stringify(earlyRun)}`);
 
+// finishWave() schedules the protocol modal after 450ms. Consume it before starting
+// the isolated wave-5 benchmark so the delayed pause cannot freeze the test run.
+await page.waitForTimeout(700);
+const protocolVisible=await page.evaluate(()=>!document.getElementById('protocolModal').classList.contains('hidden'));
+if(protocolVisible){
+  await page.locator('.protocol-choice').first().click();
+  await page.waitForFunction(()=>!window.__NEON_TEST__.state.paused,null,{timeout:10000});
+}
+
 // A full, unmerged mixed board should survive wave 5, but the fight must create density
 // and resolve through movement/leaks/kills rather than a permanent slow-lock grind.
 await page.evaluate(()=>{
   const game=window.__NEON_TEST__;
   game.resetGame();
+  document.getElementById('protocolModal')?.classList.add('hidden');
+  game.state.paused=false;
   game.state.credits=6000;
   ['rail','cryo','plasma','arcane','rail','cryo','plasma','arcane'].forEach((type,slot)=>game.buildTower(type,slot));
   game.state.wave=4;
@@ -135,6 +146,7 @@ for(let second=1;second<=35;second+=1){
       second,
       hp:game.state.hp,
       kills:game.state.kills,
+      paused:game.state.paused,
       waveActive:game.state.waveActive,
       enemies:game.state.enemies.length,
       queued:game.state.spawnQueue.length,
@@ -144,6 +156,7 @@ for(let second=1;second<=35;second+=1){
   },second);
   lateTimeline.push(point);
   peakActive=Math.max(peakActive,point.enemies);
+  if(point.paused) errors.push(`wave 5 benchmark paused unexpectedly at ${second}s`);
   if(!point.waveActive||point.hp<=0){resolvedAt=second;break;}
 }
 await page.screenshot({path:`${out}/02-wave5-pressure.png`});
@@ -151,6 +164,7 @@ const lateRun=await page.evaluate(()=>({
   hp:window.__NEON_TEST__.state.hp,
   kills:window.__NEON_TEST__.state.kills,
   wave:window.__NEON_TEST__.state.wave,
+  paused:window.__NEON_TEST__.state.paused,
   waveActive:window.__NEON_TEST__.state.waveActive
 }));
 if(lateRun.hp<=0) errors.push(`wave 5 is overtuned for a full mixed level-1 board: ${JSON.stringify(lateRun)}`);
