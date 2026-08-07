@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const BUILD='perf-runtime-v2-20260807';
+  const BUILD='perf-runtime-v3-hit-burst-20260807';
   const SCHEDULER_TARGETS={
     mainStressedHz:45,
     mainSevereHz:36,
@@ -35,13 +35,22 @@
   const domSkips={textContent:0,classToggle:0};
   const intervalAdjustments={combatMotionMonitor:0,combatMotionPublish:0};
   const budgets={
-    particles:{soft:150,hard:220},
-    rings:{soft:44,hard:68},
-    runes:{soft:30,hard:48},
-    decals:{soft:22,hard:36},
-    floating:{soft:34,hard:54},
-    fx:{soft:24,hard:40},
-    beams:{soft:38,hard:60}
+    particles:{soft:140,hard:200},
+    rings:{soft:42,hard:64},
+    runes:{soft:28,hard:44},
+    decals:{soft:22,hard:34},
+    floating:{soft:32,hard:50},
+    fx:{soft:22,hard:36},
+    beams:{soft:36,hard:56}
+  };
+  const burstBudgets={
+    particles:{soft:72,hard:110},
+    rings:{soft:18,hard:28},
+    runes:{soft:14,hard:22},
+    decals:{soft:12,hard:18},
+    floating:{soft:14,hard:24},
+    fx:{soft:12,hard:20},
+    beams:{soft:24,hard:36}
   };
 
   let game=null;
@@ -52,8 +61,8 @@
   let monitorTimer=0;
   let stressed=false;
   let severe=false;
-  let enemyAssets=new Set();
-  let enemyShadowBypasses=0;
+  let visualBurst=false;
+  let visualGlowBypasses=0;
 
   function classify(callback){
     if(typeof callback!=='function') return null;
@@ -88,11 +97,25 @@
     return kind;
   }
 
+  function visualPressure(){
+    const state=game?.state;
+    if(!state) return false;
+    return state.particles.length>=48||
+      state.rings.length>=14||
+      state.runes.length>=12||
+      state.floating.length>=8||
+      state.fx.length>=12;
+  }
+
   function refreshLoadState(){
-    if(!game?.state){stressed=false;severe=false;return;}
+    if(!game?.state){stressed=false;severe=false;visualBurst=false;return;}
     const state=game.state;
-    stressed=state.enemies.length>=14||state.particles.length>=145||state.projectiles.length>=14||state.beams.length>=30;
-    severe=state.enemies.length>=24||state.particles.length>=205||state.projectiles.length>=22||state.beams.length>=48;
+    // Main-loop throttling is based only on sustained gameplay complexity.
+    // Transient hit particles are handled by visual degradation instead so impacts never
+    // intentionally lower the gameplay frame rate.
+    stressed=state.enemies.length>=20||state.projectiles.length>=18||state.beams.length>=38;
+    severe=state.enemies.length>=30||state.projectiles.length>=26||state.beams.length>=54;
+    visualBurst=visualPressure();
   }
 
   function mainTargetHz(){
@@ -193,29 +216,29 @@
     }
   }
 
-  function refreshEnemyAssets(){
-    if(!game?.assets) return;
-    enemyAssets=new Set(['drone','runner','brute','shield','boss'].map(key=>game.assets[key]).filter(Boolean));
-  }
-
   function installCanvasPolicy(){
     const proto=window.CanvasRenderingContext2D?.prototype;
-    if(!proto||proto.__neonPerfEnemyShadowPolicy) return;
-    const previousDrawImage=proto.drawImage;
-    proto.drawImage=function performanceAwareDrawImage(image,...args){
-      if(stressed&&this.canvas?.id==='game'&&enemyAssets.has(image)&&this.shadowBlur>0){
+    if(!proto||proto.__neonPerfHitBurstPolicy) return;
+
+    const methods=['drawImage','fill','stroke','fillRect','strokeRect','fillText'];
+    for(const method of methods){
+      const previous=proto[method];
+      if(typeof previous!=='function') continue;
+      proto[method]=function performanceAwareCanvasCall(...args){
+        const suppress=this.canvas?.id==='game'&&this.shadowBlur>0&&(visualPressure()||stressed);
+        if(!suppress) return previous.apply(this,args);
         const blur=this.shadowBlur;
         this.shadowBlur=0;
         try{
-          enemyShadowBypasses+=1;
-          return previousDrawImage.call(this,image,...args);
+          visualGlowBypasses+=1;
+          return previous.apply(this,args);
         }finally{
           this.shadowBlur=blur;
         }
-      }
-      return previousDrawImage.call(this,image,...args);
-    };
-    Object.defineProperty(proto,'__neonPerfEnemyShadowPolicy',{value:true,configurable:true});
+      };
+    }
+
+    Object.defineProperty(proto,'__neonPerfHitBurstPolicy',{value:true,configurable:true});
   }
 
   function priorityVisual(name,item){
@@ -225,8 +248,14 @@
     return false;
   }
 
+  function activeBudget(name){
+    const normal=budgets[name];
+    if(!normal) return null;
+    return visualPressure()?(burstBudgets[name]||normal):normal;
+  }
+
   function acceptVisual(name,source,item){
-    const budget=budgets[name];
+    const budget=activeBudget(name);
     if(!budget) return true;
     if(priorityVisual(name,item)){
       if(source.length>=budget.hard) source.shift();
@@ -275,9 +304,10 @@
 
   function trimProjectileTrails(){
     if(!game?.state) return;
+    const burst=visualPressure();
     for(const projectile of game.state.projectiles||[]){
       if(!Array.isArray(projectile?.trail)) continue;
-      const cap=stressed?(projectile.type==='plasma'?5:6):(projectile.type==='plasma'?8:10);
+      const cap=(stressed||burst)?(projectile.type==='plasma'?5:6):(projectile.type==='plasma'?8:10);
       if(projectile.trail.length>cap) projectile.trail.splice(0,projectile.trail.length-cap);
     }
   }
@@ -295,15 +325,17 @@
       schedulerTargets:{...SCHEDULER_TARGETS},
       highLoad:stressed,
       severeLoad:severe,
+      visualBurst,
       auxiliaryHz:Object.fromEntries(AUXILIARY_KINDS.map(kind=>[kind,lastRates[kind]])),
       auxiliarySkipped:Object.fromEntries(AUXILIARY_KINDS.map(kind=>[kind,lastSkips[kind]])),
       mainHz:lastRates.main,
       mainSkipped:lastSkips.main,
       budgets:structuredClone(budgets),
+      burstBudgets:structuredClone(burstBudgets),
       dropped:{...dropped},
       domSkips:{...domSkips},
       intervalAdjustments:{...intervalAdjustments},
-      enemyShadowBypasses,
+      visualGlowBypasses,
       counts:{
         enemies:state.enemies.length,
         towers:state.towers.length,
@@ -316,8 +348,8 @@
         floating:state.floating.length,
         fx:state.fx.length
       },
-      projectileTrailCap:stressed?6:10,
-      policy:'native gameplay at normal load; adaptive 45/36 Hz only under pressure; throttle observer overlays; dedupe DOM writes; suppress enemy sprite shadows and cap transient visuals under load'
+      projectileTrailCap:(stressed||visualBurst)?6:10,
+      policy:'hit bursts never lower gameplay fps; sustained unit/projectile load may throttle main loop; transient hit bursts cap visual arrays and disable expensive canvas glow for the burst'
     };
   }
 
@@ -350,7 +382,6 @@
   function install(){
     game=window.__NEON_TEST__;
     if(!game?.state) return false;
-    refreshEnemyAssets();
     refreshLoadState();
     for(const name of Object.keys(budgets)) installBudgetProperty(name);
     clearInterval(monitorTimer);
