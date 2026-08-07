@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 const base='http://127.0.0.1:8080/';
 const out='artifacts/difficulty-balance';
 const BUILD='enemy-pressure-v3-20260807';
+const MOTION_BUILD='combat-motion-smoothing-v1-20260807';
 const HP_CURVE=[1.03,1.07,1.12,1.18,1.25];
 const SPEED_CURVE=[1.08,1.13,1.19,1.25,1.32];
 const CONTROL_CURVE=[.70,.74,.78,.82,.86];
@@ -30,11 +31,16 @@ page.on('pageerror',error=>errors.push(`pageerror: ${error.message}`));
 page.on('requestfailed',request=>errors.push(`requestfailed: ${request.url()} :: ${request.failure()?.errorText||'unknown'}`));
 
 await page.goto(`${base}?qa=build&draftSeed=20260807`,{waitUntil:'networkidle',timeout:45000});
-await page.waitForFunction(()=>window.__NEON_TEST__?.state?.ready&&window.__DIFFICULTY_BALANCE?.ready,null,{timeout:45000});
+await page.waitForFunction(({difficulty,motion})=>
+  window.__NEON_TEST__?.state?.ready&&
+  window.__DIFFICULTY_BALANCE?.ready&&window.__DIFFICULTY_BALANCE.build===difficulty&&
+  window.__COMBAT_MOTION_RUNTIME?.ready&&window.__COMBAT_MOTION_RUNTIME.build===motion,
+{difficulty:BUILD,motion:MOTION_BUILD},{timeout:45000});
 await page.waitForTimeout(250);
 
 const runtime=await page.evaluate(()=>({
   difficulty:structuredClone(window.__DIFFICULTY_BALANCE),
+  motion:structuredClone(window.__COMBAT_MOTION_RUNTIME),
   script:[...document.scripts].map(script=>script.src).find(src=>src.includes('difficulty-balance-v1.js'))||'',
   liveWavePlan:structuredClone(window.__NEON_TEST__.level.wavesData),
   cryo:{
@@ -47,6 +53,7 @@ if(runtime.difficulty.build!==BUILD) errors.push(`difficulty build mismatch: ${J
 if(!runtime.script.includes(BUILD)) errors.push(`cache token missing: ${runtime.script}`);
 if(runtime.difficulty.design!=='faster-flow-cryo-only-hit-control') errors.push(`movement design mismatch: ${runtime.difficulty.design}`);
 if(runtime.difficulty.hitMovementPolicy!=='cryo-only') errors.push(`hit movement policy mismatch: ${runtime.difficulty.hitMovementPolicy}`);
+if(runtime.motion.enemyHitStop!==false||runtime.motion.cryoUsesSlowFactor!==true) errors.push(`smooth movement policy mismatch: ${JSON.stringify(runtime.motion)}`);
 if(runtime.difficulty.hpCurveChanged!==false) errors.push('HP curve should remain unchanged in this tuning pass');
 if(runtime.difficulty.wavePlanChanged!==false) errors.push('wave plan should remain unchanged in this tuning pass');
 if(JSON.stringify(runtime.difficulty.hpCurve)!==JSON.stringify(HP_CURVE)) errors.push(`hp curve mismatch: ${JSON.stringify(runtime.difficulty.hpCurve)}`);
@@ -86,23 +93,21 @@ if(Math.abs(wave4Shield.speed-66.3)>.05) errors.push(`wave 4 shield speed mismat
 if(Math.abs(wave5Runner.speed-184.6944)>.05) errors.push(`wave 5 runner speed mismatch: ${JSON.stringify(wave5Runner)}`);
 if(Math.abs(wave5Boss.speed-52.1664)>.05) errors.push(`wave 5 boss speed mismatch: ${JSON.stringify(wave5Boss)}`);
 if(wave5Boss.controlFloor<.919) errors.push(`wave 5 boss control floor mismatch: ${JSON.stringify(wave5Boss)}`);
-if([wave1Drone,wave4Shield,wave5Runner,wave5Boss].some(sample=>sample.impactPolicy!=='cryo-only-v1')) errors.push('enemy impact policy was not installed');
+if([wave1Drone,wave4Shield,wave5Runner,wave5Boss].some(sample=>sample.impactPolicy!=='cryo-only-v1')) errors.push('enemy impact policy marker was not installed');
 
+// No tower type should create a discrete movement pause anymore. Cryo owns movement
+// control through its continuous slowFactor instead of a separate impactDrag hitch.
 const impactProbe=await page.evaluate(()=>{
   const enemy=window.__NEON_TEST__.state.enemies[0];
   const values={};
-  for(const kind of ['rail','plasma','arcane']){
+  for(const kind of ['rail','plasma','arcane','cryo']){
     enemy.impactKind=kind;
     enemy.impact=.13;
     values[kind]=enemy.impact;
   }
-  enemy.impactKind='cryo';
-  enemy.impact=.13;
-  values.cryo=enemy.impact;
   return values;
 });
-if(impactProbe.rail!==0||impactProbe.plasma!==0||impactProbe.arcane!==0) errors.push(`non-cryo hit still creates movement impact: ${JSON.stringify(impactProbe)}`);
-if(impactProbe.cryo<=0) errors.push(`cryo impact no longer exposes control feedback: ${JSON.stringify(impactProbe)}`);
+if(Object.values(impactProbe).some(value=>value!==0)) errors.push(`a tower hit still creates discrete movement impact: ${JSON.stringify(impactProbe)}`);
 
 await page.evaluate(()=>{
   const game=window.__NEON_TEST__;
@@ -116,10 +121,11 @@ const cryoProbe=await page.evaluate(()=>{
   const enemy=game.state.enemies[0];
   enemy.slow=game.towerTypes.cryo.slowDuration;
   enemy.slowFactor=1-game.towerTypes.cryo.slow;
-  return {slow:enemy.slow,slowFactor:enemy.slowFactor,floor:enemy.__difficultyControlFloor};
+  return {slow:enemy.slow,slowFactor:enemy.slowFactor,impact:enemy.impact,floor:enemy.__difficultyControlFloor};
 });
 if(Math.abs(cryoProbe.slowFactor-.76)>.001) errors.push(`baseline cryo slow should retain 76% movement speed: ${JSON.stringify(cryoProbe)}`);
 if(Math.abs(cryoProbe.slow-1.15)>.001) errors.push(`baseline cryo duration mismatch: ${JSON.stringify(cryoProbe)}`);
+if(cryoProbe.impact!==0) errors.push(`cryo should slow smoothly without hit-stop: ${JSON.stringify(cryoProbe)}`);
 
 await page.evaluate(()=>{
   const game=window.__NEON_TEST__;
@@ -149,7 +155,7 @@ const report={
   impactProbe,
   cryoProbe,
   resistanceProbe,
-  note:'This QA validates requested movement/control mechanics only; it intentionally does not score gameplay difficulty or require a win/loss outcome.'
+  note:'This QA validates movement/control mechanics only; it intentionally does not score gameplay difficulty or require a win/loss outcome.'
 };
 await fs.writeFile(`${out}/report.json`,JSON.stringify(report,null,2));
 console.log(JSON.stringify(report,null,2));
