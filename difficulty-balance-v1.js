@@ -3,16 +3,20 @@
 
   const BUILD='enemy-pressure-v2-20260807';
 
-  // Base wave scaling already exists in app.js (1.00, 1.24, 1.48, 1.72, 1.96).
-  // Keep the extra HP curve controlled so difficulty comes from pressure and positioning,
-  // not from turning late enemies into damage sponges.
+  // app.js already applies a 1.00 -> 1.96 base HP curve across five waves.
+  // Extra HP is intentionally moderate; late pressure comes from speed, density and CC resistance.
   const HP_MULT=[1.03,1.07,1.12,1.18,1.25];
   const SPEED_MULT=[1.03,1.07,1.12,1.17,1.22];
   const TYPE_HP_MULT={drone:1,runner:1,brute:1.06,shield:1.07,boss:1.12};
   const TYPE_SPEED_MULT={drone:1,runner:1.06,brute:1.02,shield:1.02,boss:1.04};
 
+  // Minimum movement factor while slowed. Wave 1 preserves the existing control fantasy;
+  // later waves stop dense fusion networks from holding every enemy near-permanently.
+  const CONTROL_FLOOR=[.56,.60,.66,.72,.78];
+  const TYPE_CONTROL_BONUS={drone:0,runner:0,brute:.04,shield:.06,boss:.10};
+
   // Pressure is primarily created by tighter spacing and a few more high-threat bodies.
-  // Rewards are intentionally unchanged: surviving pressure still funds the player's draft.
+  // Rewards remain unchanged so surviving the extra pressure still feeds the draft economy.
   const WAVE_PLAN=[
     [{type:'drone',count:9,gap:.58}],
     [{type:'runner',count:11,gap:.36},{type:'drone',count:6,gap:.40}],
@@ -39,6 +43,10 @@
     );
   }
 
+  function controlFloor(enemy,index=waveIndex()){
+    return Math.min(.92,CONTROL_FLOOR[index]+(TYPE_CONTROL_BONUS[enemy?.type]||0));
+  }
+
   function tuneEnemy(enemy){
     if(!enemy||seenEnemies.has(enemy)) return;
     seenEnemies.add(enemy);
@@ -52,6 +60,7 @@
       enemy.maxShield*=hpMultiplier;
     }
     enemy.__difficultyMultiplier=hpMultiplier;
+    enemy.__difficultyControlFloor=controlFloor(enemy,index);
     enemy.__difficultyBuild=BUILD;
   }
 
@@ -66,6 +75,18 @@
     }
   }
 
+  function tuneControl(){
+    const index=waveIndex();
+    for(const enemy of game.state.enemies||[]){
+      if(!enemy||enemy.dead) continue;
+      const floor=controlFloor(enemy,index);
+      enemy.__difficultyControlFloor=floor;
+      if(enemy.slow>0&&Number.isFinite(enemy.slowFactor)){
+        enemy.slowFactor=Math.max(enemy.slowFactor,floor);
+      }
+    }
+  }
+
   function publish(){
     const index=waveIndex();
     window.__DIFFICULTY_BALANCE={
@@ -75,10 +96,13 @@
       wave:game.state.wave,
       hpMultiplier:HP_MULT[index],
       speedMultiplier:SPEED_MULT[index],
+      controlFloor:CONTROL_FLOOR[index],
       hpCurve:[...HP_MULT],
       speedCurve:[...SPEED_MULT],
+      controlFloorCurve:[...CONTROL_FLOOR],
       typeHpMultiplier:{...TYPE_HP_MULT},
       typeSpeedMultiplier:{...TYPE_SPEED_MULT},
+      typeControlBonus:{...TYPE_CONTROL_BONUS},
       wavePlan:WAVE_PLAN.map(wave=>wave.map(group=>({...group}))),
       activeEnemies:(game.state.enemies||[]).map(enemy=>({
         id:enemy.id,
@@ -86,6 +110,8 @@
         hp:enemy.hp,
         maxHp:enemy.maxHp,
         speed:enemy.def?.speed||0,
+        slowFactor:enemy.slowFactor,
+        controlFloor:enemy.__difficultyControlFloor,
         appliedHpMultiplier:enemy.__difficultyMultiplier||1
       }))
     };
@@ -98,6 +124,7 @@
     }
     for(const enemy of game.state.enemies||[]) tuneEnemy(enemy);
     tuneSpeed();
+    tuneControl();
     publish();
     requestAnimationFrame(frame);
   }
