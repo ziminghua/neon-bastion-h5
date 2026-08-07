@@ -121,8 +121,9 @@ if(protocolVisible){
   await page.waitForFunction(()=>!window.__NEON_TEST__.state.paused,null,{timeout:10000});
 }
 
-// A full, unmerged mixed board should survive wave 5, but the fight must create density
-// and resolve through movement/leaks/kills rather than a permanent slow-lock grind.
+// A full, unmerged mixed board should face a dense wave-5 push. We evaluate gameplay
+// progress rather than wall-clock completion because dense FX can lower headless Chrome's
+// RAF rate and make x8 wall-clock timing nondeterministic.
 await page.evaluate(()=>{
   const game=window.__NEON_TEST__;
   game.resetGame();
@@ -137,7 +138,7 @@ await page.evaluate(()=>{
 const lateTimeline=[];
 let resolvedAt=null;
 let peakActive=0;
-for(let second=1;second<=35;second+=1){
+for(let second=1;second<=25;second+=1){
   await page.waitForTimeout(1000);
   const point=await page.evaluate(second=>{
     const game=window.__NEON_TEST__;
@@ -168,11 +169,20 @@ const lateRun=await page.evaluate(()=>({
   waveActive:window.__NEON_TEST__.state.waveActive
 }));
 if(lateRun.hp<=0) errors.push(`wave 5 is overtuned for a full mixed level-1 board: ${JSON.stringify(lateRun)}`);
-if(lateRun.waveActive) errors.push(`wave 5 still becomes a control-lock grind: ${JSON.stringify(lateTimeline)}`);
 if(resolvedAt!==null&&resolvedAt<8) errors.push(`wave 5 still resolves too quickly: ${resolvedAt}s`);
 if(peakActive<10) errors.push(`wave 5 never created enough simultaneous pressure: peak=${peakActive}`);
+if(lateRun.hp>=20) errors.push(`wave 5 produced no actual core pressure: ${JSON.stringify(lateRun)}`);
 
-const report={errors,runtime,samples:{wave1Drone,wave4Shield,wave5Runner,wave5Boss},controlProbe,earlyRun,lateRun,resolvedAt,peakActive,lateTimeline};
+let tailProgressDelta=null;
+if(lateTimeline.length>=6&&lateRun.waveActive){
+  const tailStart=lateTimeline.at(-6);
+  const tailEnd=lateTimeline.at(-1);
+  tailProgressDelta=(tailEnd.maxProgress??0)-(tailStart.maxProgress??0);
+  if((tailEnd.maxProgress??0)<.55) errors.push(`late heavy units did not advance far enough: ${JSON.stringify({tailStart,tailEnd})}`);
+  if(tailProgressDelta<.10) errors.push(`late wave appears control-locked: ${JSON.stringify({tailProgressDelta,tailStart,tailEnd})}`);
+}
+
+const report={errors,runtime,samples:{wave1Drone,wave4Shield,wave5Runner,wave5Boss},controlProbe,earlyRun,lateRun,resolvedAt,peakActive,tailProgressDelta,lateTimeline};
 await fs.writeFile(`${out}/report.json`,JSON.stringify(report,null,2));
 await browser.close();
 if(errors.length){console.error(JSON.stringify(report,null,2));process.exit(1);}
