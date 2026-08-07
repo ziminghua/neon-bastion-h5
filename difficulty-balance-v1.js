@@ -1,11 +1,25 @@
 (() => {
   'use strict';
 
-  const BUILD='enemy-pressure-v1-20260807';
-  const HP_MULT=[1.08,1.15,1.24,1.36,1.48];
-  const SPEED_MULT=[1.03,1.06,1.09,1.12,1.16];
-  const TYPE_HP_MULT={drone:1,runner:1,brute:1.06,shield:1.08,boss:1.18};
-  const TYPE_SPEED_MULT={drone:1,runner:1.03,brute:1,shield:1,boss:1.02};
+  const BUILD='enemy-pressure-v2-20260807';
+
+  // Base wave scaling already exists in app.js (1.00, 1.24, 1.48, 1.72, 1.96).
+  // Keep the extra HP curve controlled so difficulty comes from pressure and positioning,
+  // not from turning late enemies into damage sponges.
+  const HP_MULT=[1.03,1.07,1.12,1.18,1.25];
+  const SPEED_MULT=[1.03,1.07,1.12,1.17,1.22];
+  const TYPE_HP_MULT={drone:1,runner:1,brute:1.06,shield:1.07,boss:1.12};
+  const TYPE_SPEED_MULT={drone:1,runner:1.06,brute:1.02,shield:1.02,boss:1.04};
+
+  // Pressure is primarily created by tighter spacing and a few more high-threat bodies.
+  // Rewards are intentionally unchanged: surviving pressure still funds the player's draft.
+  const WAVE_PLAN=[
+    [{type:'drone',count:9,gap:.58}],
+    [{type:'runner',count:11,gap:.36},{type:'drone',count:6,gap:.40}],
+    [{type:'brute',count:6,gap:.62},{type:'runner',count:13,gap:.27}],
+    [{type:'shield',count:8,gap:.50},{type:'drone',count:14,gap:.22}],
+    [{type:'runner',count:15,gap:.18},{type:'brute',count:8,gap:.34},{type:'shield',count:2,gap:.48},{type:'boss',count:1,gap:.90}]
+  ];
 
   let game=null;
   let lastWave=-1;
@@ -14,6 +28,15 @@
 
   function waveIndex(){
     return Math.max(0,Math.min(4,(game?.state?.wave||1)-1));
+  }
+
+  function installWavePlan(){
+    if(!game?.level?.wavesData) return;
+    game.level.wavesData.splice(
+      0,
+      game.level.wavesData.length,
+      ...WAVE_PLAN.map(wave=>wave.map(group=>({...group})))
+    );
   }
 
   function tuneEnemy(enemy){
@@ -48,6 +71,7 @@
     window.__DIFFICULTY_BALANCE={
       build:BUILD,
       ready:true,
+      design:'pressure-over-sponge',
       wave:game.state.wave,
       hpMultiplier:HP_MULT[index],
       speedMultiplier:SPEED_MULT[index],
@@ -55,6 +79,7 @@
       speedCurve:[...SPEED_MULT],
       typeHpMultiplier:{...TYPE_HP_MULT},
       typeSpeedMultiplier:{...TYPE_SPEED_MULT},
+      wavePlan:WAVE_PLAN.map(wave=>wave.map(group=>({...group}))),
       activeEnemies:(game.state.enemies||[]).map(enemy=>({
         id:enemy.id,
         type:enemy.type,
@@ -79,7 +104,8 @@
 
   function install(){
     game=window.__NEON_TEST__;
-    if(!game?.state) return false;
+    if(!game?.state||!game?.level?.wavesData) return false;
+    installWavePlan();
     requestAnimationFrame(frame);
     return true;
   }
