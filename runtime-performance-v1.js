@@ -2,6 +2,7 @@
   'use strict';
 
   const BUILD='perf-runtime-v1-20260807';
+  const SCHEDULER_TARGETS={fusionIdleHz:15,fusionInteractiveHz:30,networkHz:30,draftHz:12.5};
   const originalRAF=window.requestAnimationFrame.bind(window);
   const callbackClass=new WeakMap();
   const wrappedCallbacks=new WeakMap();
@@ -46,10 +47,10 @@
     const state=window.__NEON_TEST__?.state;
     if(kind==='fusion'){
       const interactive=Boolean(state?.drag?.moved||state?.selectedTower||state?.hoverSlot>=0);
-      return interactive?33.3:66.7;
+      return 1000/(interactive?SCHEDULER_TARGETS.fusionInteractiveHz:SCHEDULER_TARGETS.fusionIdleHz);
     }
-    if(kind==='network') return 33.3;
-    if(kind==='draft') return 80;
+    if(kind==='network') return 1000/SCHEDULER_TARGETS.networkHz;
+    if(kind==='draft') return 1000/SCHEDULER_TARGETS.draftHz;
     return 0;
   }
 
@@ -153,6 +154,9 @@
       build:BUILD,
       ready:true,
       fps:Number(fps.toFixed(1)),
+      fpsTelemetryOnly:true,
+      mainLoopThrottled:false,
+      schedulerTargets:{...SCHEDULER_TARGETS},
       highLoad:highLoad(),
       auxiliaryHz:{...lastRates},
       auxiliarySkipped:{...lastSkips},
