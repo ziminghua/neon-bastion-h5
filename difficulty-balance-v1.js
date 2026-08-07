@@ -10,15 +10,15 @@
   let game=null;
   let lastWave=-1;
   const baseSpeedByType=new Map();
-  const seenEnemies=new Set();
+  const seenEnemies=new WeakSet();
 
   function waveIndex(){
     return Math.max(0,Math.min(4,(game?.state?.wave||1)-1));
   }
 
   function tuneEnemy(enemy){
-    if(!enemy||seenEnemies.has(enemy.id)) return;
-    seenEnemies.add(enemy.id);
+    if(!enemy||seenEnemies.has(enemy)) return;
+    seenEnemies.add(enemy);
 
     const index=waveIndex();
     const hpMultiplier=HP_MULT[index]*(TYPE_HP_MULT[enemy.type]||1);
