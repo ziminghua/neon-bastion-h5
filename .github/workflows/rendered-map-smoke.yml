@@ -32,6 +32,8 @@ jobs:
         run: node scripts/resonance-v6-qa.mjs
       - name: Validate three-stage tower visuals
         run: node scripts/tower-level-visuals-qa.mjs
+      - name: Validate smooth combat motion
+        run: node scripts/combat-motion-smoothing-qa.mjs
       - name: Validate performance and unlimited towers
         run: node scripts/performance-unlimited-qa.mjs
       - name: Validate progressive enemy pressure
@@ -47,6 +49,7 @@ jobs:
             artifacts/scene-smoke
             artifacts/resonance-v6
             artifacts/tower-level-visuals
+            artifacts/combat-motion
             artifacts/performance
             artifacts/difficulty-balance
             artifacts/release-qa
