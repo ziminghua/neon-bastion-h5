@@ -28,8 +28,8 @@ jobs:
           exit 1
       - name: Capture rendered map smoke
         run: node scripts/scene-smoke.mjs
-      - name: Validate all-link ability fusion resonance
-        run: node scripts/fusion-resonance-qa.mjs
+      - name: Validate real drag all-partner resonance
+        run: node scripts/resonance-v6-qa.mjs
       - name: Run release five-wave QA
         run: node scripts/release-qa.mjs
       - name: Upload screenshots
@@ -39,6 +39,6 @@ jobs:
           name: rendered-map-release-qa
           path: |
             artifacts/scene-smoke
-            artifacts/fusion-resonance
+            artifacts/resonance-v6
             artifacts/release-qa
           if-no-files-found: error
