@@ -28,7 +28,6 @@ await page.waitForFunction(()=>
   {timeout:45000}
 );
 
-document;
 const seeded=await page.evaluate(()=>{
   document.getElementById('intro')?.classList.add('hidden');
   const game=window.__NEON_TEST__;
@@ -96,7 +95,7 @@ const budgetProbe=await page.evaluate(()=>{
   for(let i=0;i<240;i+=1) state.rings.push({x:800,y:450,color:'#8cf6ff',from:4,to:28,life:1,max:1,width:2});
   for(let i=0;i<180;i+=1) state.runes.push({x:800,y:450,color:'#df74ff',life:1,max:1,scale:.5,rot:0});
   for(let i=0;i<140;i+=1) state.decals.push({type:'frost',x:800,y:450,life:1,max:1,scale:.5,rot:0});
-  for(let i=0;i<180;i+=1) state.floating.push({x:800,y:450,text:'13',color:'#fff',size:12,life:1,max:1});
+  for(let i=0;i<180;i+=1) state.floating.push({x:800,y:450,text:'13',color:'#fff',size:12,life:1,max:.75});
   for(let i=0;i<140;i+=1) state.fx.push({asset:'hit',x:800,y:450,life:1,max:1,scale:.4,rot:0,blend:'screen'});
   return structuredClone(window.__PERFORMANCE_RUNTIME);
 });
