@@ -31,7 +31,7 @@ jobs:
       - name: Validate real drag all-partner resonance
         run: node scripts/resonance-v6-qa.mjs
       - name: Validate progressive enemy pressure
-        run: node scripts/difficulty-balance-qa.mjs
+        run: node scripts/difficulty-balance-final-qa.mjs
       - name: Run release five-wave QA
         run: node scripts/release-qa.mjs
       - name: Upload screenshots
