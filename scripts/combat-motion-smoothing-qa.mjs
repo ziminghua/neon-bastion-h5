@@ -94,7 +94,8 @@ await page.evaluate(()=>{
   tower.cooldown=999;
 });
 await page.waitForFunction(()=>window.__NEON_TEST__.state.projectiles.length===0,null,{timeout:5000});
-await page.waitForTimeout(60);
+await page.waitForFunction(()=>window.__COMBAT_MOTION_RUNTIME.suppressedRoutineShakes>=1,null,{timeout:2000});
+await page.waitForTimeout(20);
 const plasma=await page.evaluate(()=>({
   recoil:window.__NEON_TEST__.state.towers[0].recoil,
   recoilCap:window.__NEON_TEST__.state.towers[0].__smoothRecoilCap,
