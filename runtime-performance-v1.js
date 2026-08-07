@@ -2,15 +2,26 @@
   'use strict';
 
   const BUILD='perf-runtime-v1-20260807';
-  const SCHEDULER_TARGETS={fusionIdleHz:15,fusionInteractiveHz:30,networkHz:30,draftHz:12.5};
+  const SCHEDULER_TARGETS={
+    fusionIdleHz:15,
+    fusionInteractiveHz:30,
+    networkHz:30,
+    draftHz:12.5,
+    placementIdleHz:15,
+    placementInteractiveHz:30,
+    railVfxHz:30,
+    deliveryPolishHz:15,
+    combatOriginHz:30
+  };
+  const AUXILIARY_KINDS=['fusion','network','draft','placement','railVfx','deliveryPolish','combatOrigin'];
   const originalRAF=window.requestAnimationFrame.bind(window);
   const callbackClass=new WeakMap();
   const wrappedCallbacks=new WeakMap();
   const lastRun=new WeakMap();
-  const runCounters={fusion:0,network:0,draft:0};
-  const skipCounters={fusion:0,network:0,draft:0};
-  const lastRates={fusion:0,network:0,draft:0};
-  const lastSkips={fusion:0,network:0,draft:0};
+  const runCounters=Object.fromEntries(AUXILIARY_KINDS.map(kind=>[kind,0]));
+  const skipCounters=Object.fromEntries(AUXILIARY_KINDS.map(kind=>[kind,0]));
+  const lastRates=Object.fromEntries(AUXILIARY_KINDS.map(kind=>[kind,0]));
+  const lastSkips=Object.fromEntries(AUXILIARY_KINDS.map(kind=>[kind,0]));
   const dropped={particles:0,rings:0,runes:0,decals:0,floating:0,fx:0};
   const sequences={particles:0,rings:0,runes:0,decals:0,floating:0,fx:0};
   const budgets={
@@ -38,6 +49,10 @@
       if(source.includes('buildNetwork(now)')&&source.includes('normalizeProjectiles()')) kind='fusion';
       else if(source.includes('__RESONANCE_BOARD_RUNTIME')&&source.includes('drawLink')) kind='network';
       else if(source.includes('observedTowerCount')&&source.includes('updateRerollState')) kind='draft';
+      else if(source.includes('game.level.slots.forEach')&&source.includes('drawNode(slot,index,now)')) kind='placement';
+      else if(source.includes("beam.kind === 'rail'")&&source.includes('drawRailBeam')) kind='railVfx';
+      else if(source.includes('__deliveryPolished')&&source.includes('game.state.runes')) kind='deliveryPolish';
+      else if(source.includes('__fusionOrigin')&&source.includes('game.state.projectiles')) kind='combatOrigin';
     }catch{}
     callbackClass.set(callback,kind);
     return kind;
@@ -49,8 +64,15 @@
       const interactive=Boolean(state?.drag?.moved||state?.selectedTower||state?.hoverSlot>=0);
       return 1000/(interactive?SCHEDULER_TARGETS.fusionInteractiveHz:SCHEDULER_TARGETS.fusionIdleHz);
     }
+    if(kind==='placement'){
+      const interactive=Boolean(state?.drag?.moved||state?.hoverSlot>=0);
+      return 1000/(interactive?SCHEDULER_TARGETS.placementInteractiveHz:SCHEDULER_TARGETS.placementIdleHz);
+    }
     if(kind==='network') return 1000/SCHEDULER_TARGETS.networkHz;
     if(kind==='draft') return 1000/SCHEDULER_TARGETS.draftHz;
+    if(kind==='railVfx') return 1000/SCHEDULER_TARGETS.railVfxHz;
+    if(kind==='deliveryPolish') return 1000/SCHEDULER_TARGETS.deliveryPolishHz;
+    if(kind==='combatOrigin') return 1000/SCHEDULER_TARGETS.combatOriginHz;
     return 0;
   }
 
@@ -174,7 +196,7 @@
         fx:state.fx.length
       },
       projectileTrailCap:highLoad()?7:11,
-      policy:'keep gameplay at native rAF; throttle auxiliary UI/fusion animation loops and cap visual-only transient effects'
+      policy:'keep gameplay at native rAF; throttle visual-only overlays/observers and cap transient effects under load'
     };
   }
 
@@ -192,7 +214,7 @@
     }
     if(now-rateStarted>=1000){
       const seconds=(now-rateStarted)/1000;
-      for(const kind of Object.keys(runCounters)){
+      for(const kind of AUXILIARY_KINDS){
         lastRates[kind]=Number((runCounters[kind]/seconds).toFixed(1));
         lastSkips[kind]=skipCounters[kind];
         runCounters[kind]=0;
