@@ -164,6 +164,7 @@
       tower.__fusionProfile=fusion;
       tower.__resonancePartners=fusion.partners;
       tower.__resonanceStack=fusion.linkCount;
+      tower.__activeFusionNames=fusion.combos.map(combo=>combo.name).filter(Boolean);
       tower.def.damage=base.damage;
       tower.def.interval=base.interval;
       tower.def.range=base.range;
@@ -190,11 +191,16 @@
     game.state.runes.push({x:position.x,y:position.y,color,life,max:life,scale,rot:Math.random()*Math.PI});
   }
 
-  function addBeam(from,to,color,life=.22,width=3){
+  function addBeam(from,to,color,life=.22,width=3,visual='arcane'){
+    const arcaneVisual=visual==='arcane';
     game.state.beams.push({
-      kind:'arcane',x1:from.x,y1:from.y,x2:to.x,y2:to.y,color,
-      life,max:life,width,zigzag:true,seed:Math.random()*99,__fusionVisual:true
+      kind:arcaneVisual?'arcane':'fusion',x1:from.x,y1:from.y,x2:to.x,y2:to.y,color,
+      life,max:life,width,zigzag:arcaneVisual,seed:Math.random()*99,__fusionVisual:true,__fusionVisualFamily:visual
     });
+  }
+
+  function emptyTrail(){
+    return {length:0,push(){return 0;},shift(){return undefined;},forEach(){}};
   }
 
   function applySlow(enemy,factor,duration,frost=.18){
@@ -210,15 +216,16 @@
     game.state.projectiles.push({
       type,x:from.x,y:from.y,target,damage:Math.max(0,damage),
       speed:extras.speed||920,
-      color:META[type]?.color||'#fff',
+      color:META[type]?.color||extras.color||'#fff',
       splash:extras.splash??(type==='plasma'?Math.min(46,base.splash||46):0),
       slow:extras.slow??(type==='cryo'?.28:0),
       slowDuration:extras.slowDuration??(type==='cryo'?1.05:0),
       chain:extras.chain||0,
-      tower,trail:[],spin:Math.random()*Math.PI*2,
+      tower,trail:extras.hiddenTrail?emptyTrail():[],spin:Math.random()*Math.PI*2,
       __fusionGenerated:true,
       __crossTypeResonanceChecked:true,
-      __fusionName:extras.name||'FUSION'
+      __fusionName:extras.name||'FUSION',
+      __fusionVisualFamily:extras.visualFamily||type
     });
   }
 
@@ -241,7 +248,7 @@
     addRing(position,'#c58cff',10,radius,.42,3);
     affected.forEach(({enemy,position:enemyPosition},index)=>{
       applySlow(enemy,.56,1.15+.1*count,.32);
-      addBeam(position,enemyPosition,index%2?'#9cecff':'#d782ff',.24,3);
+      addBeam(position,enemyPosition,index%2?'#9cecff':'#d782ff',.24,3,'arcane');
       addRune(enemyPosition,'#b986ff',.4,.65);
     });
   }
@@ -256,8 +263,10 @@
       if(counts.rail){
         const targets=nearbyEnemies(position,target,175).slice(0,Math.min(3,counts.rail));
         targets.forEach(({enemy,position:enemyPosition},index)=>{
-          addBeam(position,enemyPosition,'#72efff',.2,3.5);
-          spawnFusionProjectile('arcane',position,enemy,projectile.damage*(.1+.015*index),projectile.tower,{speed:1080,name:'OVERLOAD BURST'});
+          addBeam(position,enemyPosition,'#72efff',.24,3.5,'overload');
+          spawnFusionProjectile('overload',position,enemy,projectile.damage*(.1+.015*index),projectile.tower,{
+            speed:1080,name:'OVERLOAD BURST',hiddenTrail:true,visualFamily:'overload',color:'#72efff'
+          });
         });
         applySlow(target,.72,.38,.04);
         addRing(position,'#6fefff',8,74,.28,3);
@@ -265,7 +274,7 @@
       if(counts.cryo) thermalShock(position,target,counts.cryo);
       if(counts.arcane){
         const targets=nearbyEnemies(position,target,155).slice(0,Math.min(2,counts.arcane));
-        targets.forEach(({enemy})=>spawnFusionProjectile('arcane',position,enemy,projectile.damage*.08,projectile.tower,{speed:820,chain:1,name:'VOID FLAME'}));
+        targets.forEach(({enemy})=>spawnFusionProjectile('arcane',position,enemy,projectile.damage*.08,projectile.tower,{speed:820,chain:1,name:'VOID FLAME',visualFamily:'void'}));
         addRune(position,'#e287ff',.58,1.05);
       }
     }
@@ -274,7 +283,7 @@
       if(counts.rail){
         const targets=nearbyEnemies(position,target,150).slice(0,Math.min(3,counts.rail));
         targets.forEach(({enemy})=>spawnFusionProjectile('cryo',position,enemy,0,projectile.tower,{
-          speed:980,slow:Math.max(.24,(projectile.slow||.3)*.72),slowDuration:1.05,name:'SUPERCONDUCTOR'
+          speed:980,slow:Math.max(.24,(projectile.slow||.3)*.72),slowDuration:1.05,name:'SUPERCONDUCTOR',visualFamily:'superconductor'
         }));
         addRing(position,'#5fe8ff',8,70,.3,2);
       }
@@ -286,7 +295,7 @@
       if(counts.cryo) stasisWeb(position,target,counts.cryo);
       if(counts.plasma){
         const targets=nearbyEnemies(position,target,145).slice(0,Math.min(2,counts.plasma));
-        targets.forEach(({enemy})=>spawnFusionProjectile('plasma',position,enemy,projectile.damage*.08,projectile.tower,{speed:760,splash:42,name:'VOID FLAME'}));
+        targets.forEach(({enemy})=>spawnFusionProjectile('plasma',position,enemy,projectile.damage*.08,projectile.tower,{speed:760,splash:42,name:'VOID FLAME',visualFamily:'void'}));
         addRing(position,'#ff8b62',10,60,.32,3);
       }
     }
@@ -409,8 +418,8 @@
     if(counts.arcane){
       const targets=nearbyEnemies(position,target,165).slice(0,Math.min(3,counts.arcane));
       targets.forEach(({enemy,position:enemyPosition})=>{
-        addBeam(position,enemyPosition,'#d782ff',.2,3);
-        spawnFusionProjectile('arcane',position,enemy,damage*.08,tower,{speed:1120,name:'PHASE CONDUIT'});
+        addBeam(position,enemyPosition,'#d782ff',.2,3,'arcane');
+        spawnFusionProjectile('arcane',position,enemy,damage*.08,tower,{speed:1120,name:'PHASE CONDUIT',visualFamily:'phase'});
       });
       addRune(position,'#df75ff',.42,.7);
     }
@@ -447,12 +456,14 @@
     for(const [type,id] of Object.entries(badgeByType)){
       const counter=document.getElementById(id);
       if(!counter) continue;
-      const active=game.state.towers.some(tower=>tower.type===type&&(partners.get(tower)||[]).length>0);
+      const activeTowers=game.state.towers.filter(tower=>tower.type===type&&(partners.get(tower)||[]).length>0);
+      const active=activeTowers.length>0;
+      const names=[...new Set(activeTowers.flatMap(tower=>(tower.__fusionProfile||profile(tower)).combos.map(combo=>combo.name).filter(Boolean)))];
       counter.textContent='';
       counter.setAttribute('aria-hidden','true');
       const badge=counter.closest('span');
       badge?.classList.toggle('resonance-active',active);
-      badge?.setAttribute('title',active?'Fusion ability active with every different tower inside this tower range':'Place a different tower type inside this tower fusion range');
+      badge?.setAttribute('title',active?`Active fusion abilities: ${names.join(' + ')}`:'Place a different tower type inside this tower fusion range');
     }
   }
 
@@ -467,12 +478,45 @@
     return game.state.selectedBuild?{type:game.state.selectedBuild,position:null,tower:null,mode:'build'}:null;
   }
 
+  function drawComboBadges(guide,fusion){
+    if(!guide?.tower||!fusion?.combos?.length) return;
+    const combos=fusion.combos.filter(combo=>combo.name);
+    const rowHeight=19;
+    const startY=guide.position.y+48;
+    ctx.save();
+    ctx.font='800 9px sans-serif';
+    ctx.textAlign='center';
+    combos.forEach((combo,index)=>{
+      const label=`${combo.name}${combo.count>1?` ×${combo.count}`:''}`;
+      const width=Math.max(86,Math.ceil(ctx.measureText(label).width)+20);
+      const x=guide.position.x-width/2;
+      const y=startY+index*rowHeight;
+      const color=META[combo.type]?.color||'#fff';
+      ctx.globalCompositeOperation='source-over';
+      ctx.globalAlpha=.88;
+      ctx.fillStyle='rgba(2,9,18,.88)';
+      ctx.strokeStyle=color;
+      ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.roundRect(x,y,width,15,7);
+      ctx.fill();
+      ctx.stroke();
+      ctx.globalCompositeOperation='screen';
+      ctx.globalAlpha=.9;
+      ctx.fillStyle=color;
+      ctx.fillText(label,guide.position.x,y+11);
+    });
+    ctx.restore();
+  }
+
   function drawGuide(now){
     const guide=guideState(now);
     if(!guide?.position) return guide;
     const radius=RADII[guide.type];
     const color=META[guide.type].color;
-    const count=guide.tower?(partners.get(guide.tower)||[]).length:0;
+    const fusion=guide.tower?(guide.tower.__fusionProfile||profile(guide.tower)):null;
+    const count=fusion?.linkCount||0;
+    const abilityCount=fusion?.combos?.length||0;
     ctx.save();
     ctx.globalCompositeOperation='screen';
     ctx.globalAlpha=.035;
@@ -492,8 +536,10 @@
     ctx.fillStyle=color;
     ctx.font='800 11px sans-serif';
     ctx.textAlign='center';
-    ctx.fillText(count?`${count} FUSION LINK${count===1?'':'S'}`:'FUSION RANGE',guide.position.x,guide.position.y-radius+20);
+    ctx.fillText(count?`${abilityCount} FUSION${abilityCount===1?'':'S'} · ${count} LINK${count===1?'':'S'}`:'FUSION RANGE',guide.position.x,guide.position.y-radius+20);
     ctx.restore();
+
+    if(guide.mode==='selected'||guide.mode==='drag') drawComboBadges(guide,fusion);
 
     if(guide.mode==='placement'){
       const candidates=game.state.towers
@@ -520,7 +566,7 @@
       world:{...WORLD},
       towerRanges:{...RANGES},
       resonanceRanges:{...RADII},
-      resonancePolicy:'each tower independently fuses with every different tower inside its own fusion radius; no MST and no generic resonance damage',
+      resonancePolicy:'each tower independently fuses with every different tower inside its own fusion radius; all valid fusion abilities are inherited simultaneously; no MST and no generic resonance damage',
       links:links.map(link=>({
         fromType:link.from.type,toType:link.to.type,fromSlot:link.from.slot,toSlot:link.to.slot,
         distance:link.distance,radius:link.radius,fromRadius:link.fromRadius,toRadius:link.toRadius,
@@ -529,14 +575,15 @@
       })),
       towers:game.state.towers.map(tower=>{
         const fusion=tower.__fusionProfile||profile(tower);
-        return {type:tower.type,slot:tower.slot,level:tower.level,linkCount:fusion.linkCount,partnerCounts:{...fusion.counts},diversity:fusion.diversity,combos:fusion.combos.map(combo=>({...combo})),damage:tower.def.damage,interval:tower.def.interval};
+        return {type:tower.type,slot:tower.slot,level:tower.level,linkCount:fusion.linkCount,partnerCounts:{...fusion.counts},diversity:fusion.diversity,combos:fusion.combos.map(combo=>({...combo})),activeFusionNames:fusion.combos.map(combo=>combo.name).filter(Boolean),damage:tower.def.damage,interval:tower.def.interval};
       }),
       towerStacks:game.state.towers.map(tower=>({type:tower.type,slot:tower.slot,level:tower.level,stack:(tower.__fusionProfile||profile(tower)).linkCount,damage:tower.def.damage,interval:tower.def.interval})),
-      guide:guide?{type:guide.type,mode:guide.mode,position:guide.position?{...guide.position}:null,radius:RADII[guide.type],linkCount:guide.tower?(partners.get(guide.tower)||[]).length:0}:null,
+      guide:guide?{type:guide.type,mode:guide.mode,position:guide.position?{...guide.position}:null,radius:RADII[guide.type],linkCount:guide.tower?(partners.get(guide.tower)||[]).length:0,activeFusionNames:guide.tower?(guide.tower.__fusionProfile||profile(guide.tower)).combos.map(combo=>combo.name).filter(Boolean):[]}:null,
       fusionChannels:{projectiles:projectileChannelInstalled,beams:beamChannelInstalled},
+      multiFusion:true,
       overlayReady:Boolean(overlay)
     };
-    window.__FUSION_RESONANCE_RUNTIME={build:BUILD,ready:true,linkCount:links.length,combos:{...COMBOS},policy:'per-tower-all-partners'};
+    window.__FUSION_RESONANCE_RUNTIME={build:BUILD,ready:true,linkCount:links.length,combos:{...COMBOS},policy:'per-tower-all-partners',multiFusion:true};
   }
 
   function frame(now){
