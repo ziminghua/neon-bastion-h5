@@ -1,0 +1,17 @@
+{
+  "set": "plasma-art-source-20260808",
+  "purpose": "Archive generated Plasma tower/VFX source images so they are not regenerated unnecessarily.",
+  "note": "These are source-generation outputs, not yet production-cut transparent sprites. The chat produced 10 independent image attachments; only the final attachment is currently mounted as a binary file in the active runtime. Keep all source attachment IDs here for recovery/reference.",
+  "items": [
+    {"index":1,"name":"plasma_tower_lv1_source.png","source_file_id":"file_000000006dc482078e8c0e9b0a0b3135","role":"tower-lv1","repo_status":"pending-binary-recovery"},
+    {"index":2,"name":"plasma_tower_lv2_source.png","source_file_id":"file_000000003aa48206940c5e7f08ab26af","role":"tower-lv2","repo_status":"pending-binary-recovery"},
+    {"index":3,"name":"plasma_tower_lv3_source.png","source_file_id":"file_0000000027348230a1ddca322be55931","role":"tower-lv3","repo_status":"pending-binary-recovery"},
+    {"index":4,"name":"plasma_projectile_base_source.png","source_file_id":"file_000000008548820691842bc35359dca5","role":"base-projectile","repo_status":"pending-binary-recovery"},
+    {"index":5,"name":"plasma_impact_base_source.png","source_file_id":"file_000000001aa082119ca256a01367a7ef","role":"base-impact","repo_status":"pending-binary-recovery"},
+    {"index":6,"name":"plasma_overlay_rail_arc_source.png","source_file_id":"file_000000005eac82068898bf500dccc6d5","role":"rail-overlay","repo_status":"pending-binary-recovery"},
+    {"index":7,"name":"plasma_overlay_cryo_shards_source.png","source_file_id":"file_00000000b7ac82068a316af9eb4f947c","role":"cryo-shards-overlay","repo_status":"pending-binary-recovery"},
+    {"index":8,"name":"plasma_overlay_cryo_ring_source.png","source_file_id":"file_0000000088c4820995f2484da6ccd48f","role":"cryo-ring-overlay","repo_status":"pending-binary-recovery"},
+    {"index":9,"name":"plasma_overlay_arcane_rune_source.png","source_file_id":"file_00000000b7a482068cd4d01fc3af7215","role":"arcane-rune-overlay","repo_status":"pending-binary-recovery"},
+    {"index":10,"name":"plasma_overlay_arcane_void_source.png","source_file_id":"file_000000005dcc820791c1ec218481fde5","role":"arcane-void-overlay","repo_status":"binary-uploaded"}
+  ]
+}
